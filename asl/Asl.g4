@@ -50,6 +50,9 @@ variable_decl
         ;
 
 type    : INT
+        | FLOAT
+        | BOOL
+        | CHAR
         ;
 
 statements
@@ -78,11 +81,11 @@ left_expr
         ;
 
 // Grammar for expressions with boolean, relational and aritmetic operators
-expr    : expr op=MUL expr                    # arithmetic
-        | expr op=PLUS expr                   # arithmetic
-        | expr op=EQUAL expr                  # relational
-        | INTVAL                              # value
-        | ident                               # exprIdent
+expr    : expr op=(MUL|DIV) expr                            # arithmetic
+        | expr op=(PLUS|MINUS) expr                         # arithmetic
+        | expr op=(EQUAL|NEQUAL|GT|GE|LT|LE) expr           # relational
+        | INTVAL                                            # value
+        | ident                                             # exprIdent
         ;
 
 // Identifiers
@@ -95,10 +98,20 @@ ident   : ID
 
 ASSIGN    : '=' ;
 EQUAL     : '==' ;
+NEQUAL    : '!=';
+GT        : '>';
+GE        : '>=';
+LT        : '<';
+LE        : '<=';
 PLUS      : '+' ;
+MINUS     : '-';
 MUL       : '*';
+DIV       : '/';
 VAR       : 'var';
 INT       : 'int';
+FLOAT     : 'float';
+BOOL      : 'bool';
+CHAR      : 'char';
 IF        : 'if' ;
 THEN      : 'then' ;
 ELSE      : 'else' ;
