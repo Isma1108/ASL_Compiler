@@ -4,4 +4,7 @@
  Details and documentation can be found at the Compilers Lab project page
  https://www.cs.upc.edu/~cl/practica
 
+ Remember to use the appropiate ANTLR_ROOT path in the Makefile if you want to compile
+ in your local machine.
+
  
