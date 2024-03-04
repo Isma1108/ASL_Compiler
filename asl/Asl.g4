@@ -81,9 +81,14 @@ left_expr
         ;
 
 // Grammar for expressions with boolean, relational and aritmetic operators
-expr    : expr op=(MUL|DIV) expr                            # arithmetic
+expr    : '(' expr ')'                                      # parenthesis 
+        | op=NOT expr                                       # binaryOperationUnary
+        | op=(PLUS|MINUS) expr                              # arithmeticUnary
+        | expr op=(MUL|DIV) expr                            # arithmetic
         | expr op=(PLUS|MINUS) expr                         # arithmetic
         | expr op=(EQUAL|NEQUAL|GT|GE|LT|LE) expr           # relational
+        | expr op=AND expr                                  # binaryOperation
+        | expr op=OR expr                                   # binaryOperation
         | (INTVAL|FLOATVAL|CHARVAL|BOOLVAL)                 # value
         | ident                                             # exprIdent
         ;
@@ -107,6 +112,9 @@ PLUS      : '+' ;
 MINUS     : '-';
 MUL       : '*';
 DIV       : '/';
+NOT       : 'not';
+AND       : 'and';
+OR        : 'or';
 VAR       : 'var';
 INT       : 'int';
 FLOAT     : 'float';

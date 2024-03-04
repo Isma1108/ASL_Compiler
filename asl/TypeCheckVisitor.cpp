@@ -201,6 +201,67 @@ antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx)
   return 0;
 }
 
+antlrcpp::Any TypeCheckVisitor::visitParenthesis(AslParser::ParenthesisContext *ctx) {
+  DEBUG_ENTER();
+  visit(ctx->expr());
+  TypesMgr::TypeId t = getTypeDecor(ctx->expr());
+  putTypeDecor(ctx, t);
+  putIsLValueDecor(ctx, false);
+  DEBUG_EXIT();
+  return 0;
+}
+
+antlrcpp::Any TypeCheckVisitor::visitBinaryOperation(AslParser::BinaryOperationContext *ctx) {
+  DEBUG_ENTER();
+
+  visit(ctx->expr(0));
+  visit(ctx->expr(1));
+
+  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
+	TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
+
+  if ((not Types.isErrorTy(t1) and not Types.isBooleanTy(t1)) or
+      (not Types.isErrorTy(t2) and not Types.isBooleanTy(t2)))
+    Errors.incompatibleOperator(ctx->op);
+
+	putTypeDecor(ctx, Types.createBooleanTy());
+	putIsLValueDecor(ctx, false);
+	
+	DEBUG_EXIT();
+	return 0;
+}
+
+antlrcpp::Any TypeCheckVisitor::visitBinaryOperationUnary(AslParser::BinaryOperationUnaryContext *ctx) {
+  DEBUG_ENTER();
+	visit(ctx->expr());
+	TypesMgr::TypeId t = getTypeDecor(ctx->expr());
+	
+	if (not Types.isErrorTy(t) and not Types.isBooleanTy(t))
+		Errors.incompatibleOperator(ctx->op);
+	
+	putTypeDecor(ctx, Types.createBooleanTy());
+	putIsLValueDecor(ctx, false);
+	
+	DEBUG_EXIT();
+	return 0;
+}
+
+antlrcpp::Any TypeCheckVisitor::visitArithmeticUnary(AslParser::ArithmeticUnaryContext *ctx) {
+  DEBUG_ENTER();
+	visit(ctx->expr());
+	TypesMgr::TypeId t = getTypeDecor(ctx->expr());
+	
+	if (not Types.isErrorTy(t) and not Types.isNumericTy(t))
+		Errors.incompatibleOperator(ctx->op);
+
+  t = Types.createIntegerTy();
+	putTypeDecor(ctx, t);
+	putIsLValueDecor(ctx, false);
+
+	DEBUG_EXIT();
+	return 0;
+}
+
 antlrcpp::Any TypeCheckVisitor::visitArithmetic(AslParser::ArithmeticContext *ctx) {
   DEBUG_ENTER();
   visit(ctx->expr(0));
