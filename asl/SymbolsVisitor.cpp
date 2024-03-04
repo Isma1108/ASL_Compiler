@@ -120,10 +120,14 @@ antlrcpp::Any SymbolsVisitor::visitVariable_decl(AslParser::Variable_declContext
 
 antlrcpp::Any SymbolsVisitor::visitType(AslParser::TypeContext *ctx) {
   DEBUG_ENTER();
-  if (ctx->INT()) {
-    TypesMgr::TypeId t = Types.createIntegerTy();
-    putTypeDecor(ctx, t);
-  }
+  
+  TypesMgr::TypeId t;
+  if (ctx->INT()) t = Types.createIntegerTy();
+  else if (ctx->FLOAT()) t = Types.createFloatTy();
+  else if (ctx->BOOL()) t = Types.createBooleanTy();
+  else if (ctx->CHAR()) t = Types.createCharacterTy();
+
+  putTypeDecor(ctx, t);
   DEBUG_EXIT();
   return 0;
 }

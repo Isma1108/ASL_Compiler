@@ -84,7 +84,7 @@ left_expr
 expr    : expr op=(MUL|DIV) expr                            # arithmetic
         | expr op=(PLUS|MINUS) expr                         # arithmetic
         | expr op=(EQUAL|NEQUAL|GT|GE|LT|LE) expr           # relational
-        | INTVAL                                            # value
+        | (INTVAL|FLOATVAL|CHARVAL|BOOLVAL)                 # value
         | ident                                             # exprIdent
         ;
 
@@ -120,14 +120,30 @@ FUNC      : 'func' ;
 ENDFUNC   : 'endfunc' ;
 READ      : 'read' ;
 WRITE     : 'write' ;
-ID        : ('a'..'z'|'A'..'Z') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')* ;
-INTVAL    : ('0'..'9')+ ;
+
+
+ID        : LETTER (LETTER | '_' | DIGIT)* ;
+INTVAL    : DIGIT+ ;
+FLOATVAL  : DIGIT+ '.' DIGIT+;
+CHARVAL   : SINGLE_QUOTA (DIGIT | LETTER | '\\n' | '\\t') SINGLE_QUOTA;
+BOOLVAL   : 'true' | 'false' ;
+
 
 // Strings (in quotes) with escape sequences
 STRING    : '"' ( ESC_SEQ | ~('\\'|'"') )* '"' ;
 
 fragment
 ESC_SEQ   : '\\' ('b'|'t'|'n'|'f'|'r'|'"'|'\''|'\\') ;
+
+fragment 
+LETTER    : 'a'..'z'|'A'..'Z';
+
+fragment
+DIGIT     : '0'..'9';
+
+fragment
+SINGLE_QUOTA : '\'';
+
 
 // Comments (inline C++-style)
 COMMENT   : '//' ~('\n'|'\r')* '\r'? '\n' -> skip ;
