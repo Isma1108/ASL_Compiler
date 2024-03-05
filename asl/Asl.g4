@@ -38,7 +38,7 @@ program : function+ EOF
 
 // A function has a name, a list of parameters and a list of statements
 function
-        : FUNC ID '(' ')' declarations statements ENDFUNC
+        : FUNC ID LPAR RPAR declarations statements ENDFUNC
         ;
 
 declarations
@@ -46,7 +46,7 @@ declarations
         ;
 
 variable_decl
-        : VAR ID ':' type
+        : VAR ID (COMMA ID)* ':' type
         ;
 
 type    : INT
@@ -120,6 +120,9 @@ INT       : 'int';
 FLOAT     : 'float';
 BOOL      : 'bool';
 CHAR      : 'char';
+LPAR      : '(';
+RPAR      : ')';
+COMMA     : ',';
 IF        : 'if' ;
 THEN      : 'then' ;
 ELSE      : 'else' ;
@@ -128,13 +131,11 @@ FUNC      : 'func' ;
 ENDFUNC   : 'endfunc' ;
 READ      : 'read' ;
 WRITE     : 'write' ;
-
-
-ID        : LETTER (LETTER | '_' | DIGIT)* ;
+BOOLVAL   : 'true' | 'false';
 INTVAL    : DIGIT+ ;
 FLOATVAL  : DIGIT+ '.' DIGIT+;
 CHARVAL   : SINGLE_QUOTA (DIGIT | LETTER | '\\n' | '\\t') SINGLE_QUOTA;
-BOOLVAL   : 'true' | 'false' ;
+ID        : LETTER (LETTER | '_' | DIGIT)* ;
 
 
 // Strings (in quotes) with escape sequences

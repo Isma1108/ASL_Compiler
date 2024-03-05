@@ -106,13 +106,16 @@ antlrcpp::Any SymbolsVisitor::visitDeclarations(AslParser::DeclarationsContext *
 antlrcpp::Any SymbolsVisitor::visitVariable_decl(AslParser::Variable_declContext *ctx) {
   DEBUG_ENTER();
   visit(ctx->type());
-  std::string ident = ctx->ID()->getText();
-  if (Symbols.findInCurrentScope(ident)) {
-    Errors.declaredIdent(ctx->ID());
-  }
-  else {
-    TypesMgr::TypeId t1 = getTypeDecor(ctx->type());
-    Symbols.addLocalVar(ident, t1);
+  TypesMgr::TypeId t = getTypeDecor(ctx->type());
+
+  //Now we can have multiple-variable declaration in one line, so we need to check for all of 
+  //them if the identifier is already used.
+  for (const auto& id : ctx->ID()) {
+    std::string ident = id->getText();
+    if (Symbols.findInCurrentScope(ident)) {
+      Errors.declaredIdent(id);
+    }
+    else Symbols.addLocalVar(ident, t);
   }
   DEBUG_EXIT();
   return 0;
