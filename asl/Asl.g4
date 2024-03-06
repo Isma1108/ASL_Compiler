@@ -62,17 +62,21 @@ statements
 // The different types of instructions
 statement
           // Assignment
-        : left_expr ASSIGN expr ';'           # assignStmt
+        : left_expr ASSIGN expr ';'                             # assignStmt
           // if-then-else statement (else is optional)
-        | IF expr THEN statements ENDIF       # ifStmt
+        | IF expr THEN statements (ELSE statements)? ENDIF      # ifStmt
+          // while-do-endwhile statement
+        | WHILE expr DO statements ENDWHILE                     # whileStmt
           // A function/procedure call has a list of arguments in parenthesis (possibly empty)
-        | ident '(' ')' ';'                   # procCall
+        | ident '(' ')' ';'                                     # procCall
           // Read a variable
-        | READ left_expr ';'                  # readStmt
+        | READ left_expr ';'                                    # readStmt
           // Write an expression
-        | WRITE expr ';'                      # writeExpr
+        | WRITE expr ';'                                        # writeExpr
           // Write a string
-        | WRITE STRING ';'                    # writeString
+        | WRITE STRING ';'                                      # writeString
+          // Return an expression
+        | RETURN (expr)? ';'                                    # returnStmt
         ;
 
 // Grammar for left expressions (l-values in C++)
@@ -101,14 +105,14 @@ ident   : ID
 /// Lexer Rules
 //////////////////////////////////////////////////
 
-ASSIGN    : '=' ;
-EQUAL     : '==' ;
+ASSIGN    : '=';
+EQUAL     : '==';
 NEQUAL    : '!=';
 GT        : '>';
 GE        : '>=';
 LT        : '<';
 LE        : '<=';
-PLUS      : '+' ;
+PLUS      : '+';
 MINUS     : '-';
 MUL       : '*';
 DIV       : '/';
@@ -123,14 +127,18 @@ CHAR      : 'char';
 LPAR      : '(';
 RPAR      : ')';
 COMMA     : ',';
-IF        : 'if' ;
-THEN      : 'then' ;
-ELSE      : 'else' ;
-ENDIF     : 'endif' ;
-FUNC      : 'func' ;
-ENDFUNC   : 'endfunc' ;
-READ      : 'read' ;
-WRITE     : 'write' ;
+IF        : 'if';
+THEN      : 'then';
+ELSE      : 'else';
+ENDIF     : 'endif';
+WHILE     : 'while';
+DO        : 'do';
+ENDWHILE  : 'endwhile';
+FUNC      : 'func';
+RETURN    : 'return';
+ENDFUNC   : 'endfunc';
+READ      : 'read';
+WRITE     : 'write';
 BOOLVAL   : 'true' | 'false';
 INTVAL    : DIGIT+ ;
 FLOATVAL  : DIGIT+ '.' DIGIT+;
