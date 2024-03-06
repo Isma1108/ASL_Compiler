@@ -1,2 +1,13 @@
+# vscode
 .vscode
 /asl/.antlr
+
+# Object files
+/asl/*.o
+/common/*.o
+
+# Antlr files
+/asl/Asl*
+!/asl/Asl.g4
+/asl/asl
+/asl/_antlr
