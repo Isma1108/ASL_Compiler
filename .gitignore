@@ -11,3 +11,6 @@
 !/asl/Asl.g4
 /asl/asl
 /asl/_antlr
+
+# Makefile
+/asl/Makefile
