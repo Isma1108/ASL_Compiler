@@ -38,7 +38,15 @@ program : function+ EOF
 
 // A function has a name, a list of parameters and a list of statements
 function
-        : FUNC ID LPAR RPAR declarations statements ENDFUNC
+        : FUNC ID LPAR parameters RPAR (':' type)? declarations statements ENDFUNC
+        ;
+
+parameters
+        : (parameter_decl (COMMA parameter_decl)*)?
+        ;
+
+parameter_decl
+        : ID ':' type
         ;
 
 declarations
