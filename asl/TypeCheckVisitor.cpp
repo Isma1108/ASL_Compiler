@@ -203,7 +203,7 @@ antlrcpp::Any TypeCheckVisitor::visitWriteExpr(AslParser::WriteExprContext *ctx)
 //   return r;
 // }
 
-antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx) {
+antlrcpp::Any TypeCheckVisitor::visitLeftExprIdent(AslParser::LeftExprIdentContext *ctx) {
   DEBUG_ENTER();
   visit(ctx->ident());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
@@ -213,6 +213,36 @@ antlrcpp::Any TypeCheckVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx)
   DEBUG_EXIT();
   return 0;
 }
+
+antlrcpp::Any TypeCheckVisitor::visitLeftExprArray(AslParser::LeftExprArrayContext *ctx) {
+  DEBUG_ENTER();
+
+  //First we see the array to detect
+  //if we are doing array acces to a array array operand
+  visit(ctx->ident());
+  TypesMgr::TypeId t = getTypeDecor(ctx->ident());
+  bool b = getIsLValueDecor(ctx->ident());
+
+  if (not Types.isErrorTy(t) and not Types.isArrayTy(t)) {
+    //We are array accessing but we have no array
+    Errors.nonArrayInArrayAccess(ctx->ident());
+  }
+  else putTypeDecor(ctx, t);
+  
+  putIsLValueDecor(ctx, b);
+
+  //Now we see the index
+  visit(ctx->expr());
+  t = getTypeDecor(ctx->expr());
+  if (not Types.isErrorTy(t) and not Types.isIntegerTy(t)) {
+    //The index is not an Integer value
+    Errors.nonIntegerIndexInArrayAccess(ctx->expr());
+  }
+
+  DEBUG_EXIT();
+  return 0;
+}
+
 
 antlrcpp::Any TypeCheckVisitor::visitParenthesis(AslParser::ParenthesisContext *ctx) {
   DEBUG_ENTER();
@@ -322,6 +352,20 @@ antlrcpp::Any TypeCheckVisitor::visitValue(AslParser::ValueContext *ctx) {
   DEBUG_EXIT();
   return 0;
 }
+
+antlrcpp::Any TypeCheckVisitor::visitLeftExprValue(AslParser::LeftExprValueContext *ctx) {
+  DEBUG_ENTER();
+  visit(ctx->left_expr());
+  TypesMgr::TypeId t = getTypeDecor(ctx->left_expr());
+  bool b = getIsLValueDecor(ctx->left_expr());
+
+  putTypeDecor(ctx, t);
+  putIsLValueDecor(ctx, b);
+
+  DEBUG_EXIT();
+  return 0;
+}
+
 
 antlrcpp::Any TypeCheckVisitor::visitExprIdent(AslParser::ExprIdentContext *ctx) {
   DEBUG_ENTER();

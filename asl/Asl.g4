@@ -89,7 +89,8 @@ statement
 
 // Grammar for left expressions (l-values in C++)
 left_expr
-        : ident
+        : ident                 # leftExprIdent
+        | ident '[' expr ']'    # leftExprArray
         ;
 
 // Grammar for expressions with boolean, relational and aritmetic operators
@@ -102,6 +103,7 @@ expr    : '(' expr ')'                                      # parenthesis
         | expr op=AND expr                                  # binaryOperation
         | expr op=OR expr                                   # binaryOperation
         | (INTVAL|FLOATVAL|CHARVAL|BOOLVAL)                 # value
+        | left_expr                                         # leftExprValue
         | ident                                             # exprIdent
         ;
 

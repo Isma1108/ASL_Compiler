@@ -208,7 +208,16 @@ antlrcpp::Any CodeGenVisitor::visitWriteString(AslParser::WriteStringContext *ct
   return code;
 }
 
-antlrcpp::Any CodeGenVisitor::visitLeft_expr(AslParser::Left_exprContext *ctx) {
+antlrcpp::Any CodeGenVisitor::visitLeftExprIdent(AslParser::LeftExprIdentContext *ctx) {
+  DEBUG_ENTER();
+  CodeAttribs && codAts = visit(ctx->ident());
+  DEBUG_EXIT();
+  return codAts;
+}
+
+antlrcpp::Any CodeGenVisitor::visitLeftExprArray(AslParser::LeftExprArrayContext *ctx) {
+  //This is wrong cause we are only accessing the array identifier and not the index
+  //We will change this later
   DEBUG_ENTER();
   CodeAttribs && codAts = visit(ctx->ident());
   DEBUG_EXIT();
@@ -252,6 +261,13 @@ antlrcpp::Any CodeGenVisitor::visitRelational(AslParser::RelationalContext *ctx)
   std::string temp = "%"+codeCounters.newTEMP();
   code = code || instruction::EQ(temp, addr1, addr2);
   CodeAttribs codAts(temp, "", code);
+  DEBUG_EXIT();
+  return codAts;
+}
+
+antlrcpp::Any CodeGenVisitor::visitLeftExprValue(AslParser::LeftExprValueContext *ctx) {
+  DEBUG_ENTER();
+  CodeAttribs && codAts = visit(ctx->left_expr());
   DEBUG_EXIT();
   return codAts;
 }
