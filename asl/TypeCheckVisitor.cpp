@@ -226,6 +226,7 @@ antlrcpp::Any TypeCheckVisitor::visitLeftExprArray(AslParser::LeftExprArrayConte
   if (not Types.isErrorTy(t) and not Types.isArrayTy(t)) {
     //We are array accessing but we have no array
     Errors.nonArrayInArrayAccess(ctx->ident());
+    putTypeDecor(ctx, Types.createErrorTy());
   }
   else putTypeDecor(ctx, t);
   
