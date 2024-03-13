@@ -104,7 +104,7 @@ expr    : '(' expr ')'                                      # parenthesis
         | expr op=OR expr                                   # binaryOperation
         | (INTVAL|FLOATVAL|CHARVAL|BOOLVAL)                 # value
         | left_expr                                         # leftExprValue
-        | function                                          # functionCall
+        | ID LPAR RPAR                                      # functionCall
         ;
 
 // Identifiers

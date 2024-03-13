@@ -86,9 +86,24 @@ antlrcpp::Any TypeCheckVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   DEBUG_ENTER();
   SymTable::ScopeId sc = getScopeDecor(ctx);
   Symbols.pushThisScope(sc);
-  // Symbols.print();
   visit(ctx->statements());
   Symbols.popScope();
+  DEBUG_EXIT();
+  return 0;
+}
+
+antlrcpp::Any TypeCheckVisitor::visitFunctionCall(AslParser::FunctionCallContext *ctx) {
+  DEBUG_ENTER();
+  SymTable::ScopeId sc = getScopeDecor(ctx);
+  String id = ctx->ID()->getText();
+  if (sc.isFunctionClass(id)) {
+    TypesMgr::TypeId t = sc.getType(id);
+    putTypeDecor(ctx, t);
+  }
+  else {
+    putTypeDecor(ctx, Types.createErrorTy());
+    Errors.isNotCallable(ctx->ID());
+  }
   DEBUG_EXIT();
   return 0;
 }
