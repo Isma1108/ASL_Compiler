@@ -93,6 +93,10 @@ left_expr
         | ident '[' expr ']'    # leftExprArray
         ;
 
+function_call
+        : ident LPAR RPAR       #functionCall
+        ;      
+
 // Grammar for expressions with boolean, relational and aritmetic operators
 expr    : '(' expr ')'                                      # parenthesis 
         | op=NOT expr                                       # binaryOperationUnary
@@ -104,6 +108,7 @@ expr    : '(' expr ')'                                      # parenthesis
         | expr op=OR expr                                   # binaryOperation
         | (INTVAL|FLOATVAL|CHARVAL|BOOLVAL)                 # value
         | left_expr                                         # leftExprValue
+        | function_call                                     # functionValue
         | ident                                             # exprIdent
         ;
 

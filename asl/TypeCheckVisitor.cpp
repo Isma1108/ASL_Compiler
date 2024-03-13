@@ -264,11 +264,10 @@ antlrcpp::Any TypeCheckVisitor::visitBinaryOperation(AslParser::BinaryOperationC
   TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
 	TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
 
-  if ((not Types.isErrorTy(t1) and not Types.isBooleanTy(t1)) or
-      (not Types.isErrorTy(t2) and not Types.isBooleanTy(t2)))
+  if ((not Types.isErrorTy(t1) and not Types.isBooleanTy(t1)) or (not Types.isErrorTy(t2) and not Types.isBooleanTy(t2)))
     Errors.incompatibleOperator(ctx->op);
-
-	putTypeDecor(ctx, Types.createBooleanTy());
+  
+  putTypeDecor(ctx, Types.createBooleanTy());
 	putIsLValueDecor(ctx, false);
 	
 	DEBUG_EXIT();
@@ -329,9 +328,9 @@ antlrcpp::Any TypeCheckVisitor::visitRelational(AslParser::RelationalContext *ct
   visit(ctx->expr(1));
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
   std::string oper = ctx->op->getText();
-  if ((not Types.isErrorTy(t1)) and (not Types.isErrorTy(t2)) and
-      (not Types.comparableTypes(t1, t2, oper)))
+  if ((not Types.isErrorTy(t1)) and (not Types.isErrorTy(t2)) and (not Types.comparableTypes(t1, t2, oper))) {
     Errors.incompatibleOperator(ctx->op);
+  }
   TypesMgr::TypeId t = Types.createBooleanTy();
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, false);
@@ -363,6 +362,27 @@ antlrcpp::Any TypeCheckVisitor::visitLeftExprValue(AslParser::LeftExprValueConte
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, b);
 
+  DEBUG_EXIT();
+  return 0;
+}
+
+antlrcpp::Any TypeCheckVisitor::visitFunctionValue(AslParser::FunctionValueContext *ctx) {
+  DEBUG_ENTER();
+  visit(ctx->function_call());
+  TypesMgr::TypeId t = getTypeDecor(ctx->function_call());
+  putTypeDecor(ctx, t);
+  putIsLValueDecor(ctx, false);
+  DEBUG_EXIT();
+  return 0;
+}
+
+antlrcpp::Any TypeCheckVisitor::visitFunctionCall(AslParser::FunctionCallContext *ctx) {
+  DEBUG_ENTER();
+  visit(ctx->ident());
+  TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
+  putTypeDecor(ctx, t1);
+  bool b = getIsLValueDecor(ctx->ident());
+  putIsLValueDecor(ctx, b);
   DEBUG_EXIT();
   return 0;
 }
