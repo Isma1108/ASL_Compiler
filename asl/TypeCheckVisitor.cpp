@@ -94,15 +94,14 @@ antlrcpp::Any TypeCheckVisitor::visitFunction(AslParser::FunctionContext *ctx) {
 
 antlrcpp::Any TypeCheckVisitor::visitFunctionCall(AslParser::FunctionCallContext *ctx) {
   DEBUG_ENTER();
-  SymTable::ScopeId sc = getScopeDecor(ctx);
-  String id = ctx->ID()->getText();
-  if (sc.isFunctionClass(id)) {
-    TypesMgr::TypeId t = sc.getType(id);
+  std::string ident = ctx->ID()->getText();
+  if (Symbols.isFunctionClass(ident)) {
+    TypesMgr::TypeId t = Symbols.getType(ident);
     putTypeDecor(ctx, t);
   }
   else {
     putTypeDecor(ctx, Types.createErrorTy());
-    Errors.isNotCallable(ctx->ID());
+    Errors.isNotCallable(ctx);
   }
   DEBUG_EXIT();
   return 0;
@@ -378,18 +377,6 @@ antlrcpp::Any TypeCheckVisitor::visitLeftExprValue(AslParser::LeftExprValueConte
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, b);
 
-  DEBUG_EXIT();
-  return 0;
-}
-
-
-antlrcpp::Any TypeCheckVisitor::visitExprIdent(AslParser::ExprIdentContext *ctx) {
-  DEBUG_ENTER();
-  visit(ctx->ident());
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
-  putTypeDecor(ctx, t1);
-  bool b = getIsLValueDecor(ctx->ident());
-  putIsLValueDecor(ctx, b);
   DEBUG_EXIT();
   return 0;
 }

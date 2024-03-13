@@ -77,7 +77,6 @@ public:
   //antlrcpp::Any visitLeft_expr(AslParser::Left_exprContext *ctx);
   antlrcpp::Any visitLeftExprIdent(AslParser::LeftExprIdentContext *ctx);
   antlrcpp::Any visitLeftExprArray(AslParser::LeftExprArrayContext *ctx);
-  antlrcpp::Any visitExprIdent(AslParser::ExprIdentContext *ctx);
   antlrcpp::Any visitParenthesis(AslParser::ParenthesisContext *ctx);
   antlrcpp::Any visitBinaryOperation(AslParser::BinaryOperationContext *ctx);
   antlrcpp::Any visitBinaryOperationUnary(AslParser::BinaryOperationUnaryContext *ctx);
