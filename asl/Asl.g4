@@ -76,7 +76,7 @@ statement
           // while-do-endwhile statement
         | WHILE expr DO statements ENDWHILE                     # whileStmt
           // A function/procedure call has a list of arguments in parenthesis (possibly empty)
-        | ident '(' ')' ';'                                     # procCall
+        | funcCall ';'                                          # procCall
           // Read a variable
         | READ left_expr ';'                                    # readStmt
           // Write an expression
@@ -93,6 +93,11 @@ left_expr
         | ident '[' expr ']'    # leftExprArray
         ;
 
+// Grammar for function calls
+funcCall
+        : ID LPAR (expr (COMMA expr)*)? RPAR                # functionCall
+        ;
+
 // Grammar for expressions with boolean, relational and aritmetic operators
 expr    : '(' expr ')'                                      # parenthesis 
         | op=NOT expr                                       # binaryOperationUnary
@@ -104,7 +109,7 @@ expr    : '(' expr ')'                                      # parenthesis
         | expr op=OR expr                                   # binaryOperation
         | (INTVAL|FLOATVAL|CHARVAL|BOOLVAL)                 # value
         | left_expr                                         # leftExprValue
-        | ID LPAR RPAR                                      # functionCall
+        | funcCall                                          # funcCallExpr
         ;
 
 // Identifiers
