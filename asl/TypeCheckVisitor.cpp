@@ -94,15 +94,20 @@ antlrcpp::Any TypeCheckVisitor::visitFunction(AslParser::FunctionContext *ctx) {
 
 antlrcpp::Any TypeCheckVisitor::visitFunctionCall(AslParser::FunctionCallContext *ctx) {
   DEBUG_ENTER();
-  std::string ident = ctx->ID()->getText();
-  if (Symbols.isFunctionClass(ident)) {
-    TypesMgr::TypeId t = Symbols.getType(ident);
-    putTypeDecor(ctx, t);
-  }
-  else {
+  std::string ident = ctx->ID(0)->getText();
+  if (!Symbols.isFunctionClass(ident)) {
     putTypeDecor(ctx, Types.createErrorTy());
     Errors.isNotCallable(ctx);
+    DEBUG_EXIT();
+    return 0;
   }
+  TypesMgr::TypeId type = Symbols.getGlobalFunctionType(ident);
+  std::vector<TypesMgr::TypeId>  param_types = TypesMgr::getFuncParamsTypes(type);
+  if (ctx.children.size()) {
+    
+  }
+  TypesMgr::TypeId t = Symbols.getType(ident);
+  putTypeDecor(ctx, t);
   DEBUG_EXIT();
   return 0;
 }
