@@ -14,6 +14,9 @@ function check_chkt_example() {
 	echo "Wrong output"
 	cat tmp.diff
 	echo ""
+    rm -f tmp.diff
+    rm -f tmp.err
+    exit 1
     fi
     rm -f tmp.diff
 }
@@ -30,6 +33,9 @@ function check_genc_example() {
 	echo "Wrong output"
 	cat tmp.diff
  	echo ""
+    rm -f tmp.diff
+    rm -f tmp.err
+    exit 1
     fi
     rm -f tmp.diff
 }
