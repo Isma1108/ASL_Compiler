@@ -103,8 +103,18 @@ antlrcpp::Any TypeCheckVisitor::visitFunctionCall(AslParser::FunctionCallContext
   }
   TypesMgr::TypeId type = Symbols.getGlobalFunctionType(ident);
   std::vector<TypesMgr::TypeId>  param_types = TypesMgr::getFuncParamsTypes(type);
-  if (ctx.children.size()) {
-    
+  if (ctx.children.size() != param_types.size() + 1) {
+    putTypeDecor(ctx, Types.createErrorTy());
+    Errors.wrongNumberOfParams(ctx);
+    DEBUG_EXIT();
+    return 0;
+  }
+  for (int i = 0; i < param_types.size(); i++) {
+    visit(ctx->expr(i));
+    TypesMgr::TypeId t = getTypeDecor(ctx->expr(i));
+    if (not Types.isErrorTy(t) and not Types.copyableTypes(t, param_types[i])) {
+      Errors.incompatibleParam(ctx->expr(i));
+    }
   }
   TypesMgr::TypeId t = Symbols.getType(ident);
   putTypeDecor(ctx, t);
