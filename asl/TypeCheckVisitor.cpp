@@ -268,30 +268,21 @@ antlrcpp::Any TypeCheckVisitor::visitLeftExprIdent(AslParser::LeftExprIdentConte
 
 antlrcpp::Any TypeCheckVisitor::visitLeftExprArray(AslParser::LeftExprArrayContext *ctx) {
   DEBUG_ENTER();
-
-  //First we see the array to detect
-  //if we are doing array acces to a array array operand
   visit(ctx->ident());
-  TypesMgr::TypeId t = getTypeDecor(ctx->ident());
-  bool b = getIsLValueDecor(ctx->ident());
-
-  if (not Types.isErrorTy(t) and not Types.isArrayTy(t)) {
-    //We are array accessing but we have no array
+  visit(ctx->expr());
+  TypesMgr::TypeId array_type = getTypeDecor(ctx->ident());
+  if (not Types.isErrorTy(array_type) and not Types.isArrayTy(array_type)) {
     Errors.nonArrayInArrayAccess(ctx->ident());
     putTypeDecor(ctx, Types.createErrorTy());
   }
-  else putTypeDecor(ctx, t);
-  
-  putIsLValueDecor(ctx, b);
-
-  //Now we see the index
-  visit(ctx->expr());
-  t = getTypeDecor(ctx->expr());
-  if (not Types.isErrorTy(t) and not Types.isIntegerTy(t)) {
-    //The index is not an Integer value
+  else {
+    putTypeDecor(ctx, Types.getArrayElemType(array_type));
+  }
+  putIsLValueDecor(ctx, true);
+  TypesMgr::TypeId expression_type = getTypeDecor(ctx->expr());
+  if (not Types.isErrorTy(expression_type) and not Types.isIntegerTy(expression_type)) {
     Errors.nonIntegerIndexInArrayAccess(ctx->expr());
   }
-
   DEBUG_EXIT();
   return 0;
 }
