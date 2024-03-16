@@ -127,7 +127,7 @@ antlrcpp::Any TypeCheckVisitor::visitFunction_call(AslParser::Function_callConte
   }
   for (uint i = 0; i < param_types.size(); i++) {
     TypesMgr::TypeId t = getTypeDecor(ctx->expr(i));
-    if (not Types.isErrorTy(t) and not Types.copyableTypes(t, param_types[i])) {
+    if (not Types.isErrorTy(t) and not Types.copyableTypes(param_types[i], t)) {
       Errors.incompatibleParameter(ctx->expr(i), i+1, ctx);
     }
   }
