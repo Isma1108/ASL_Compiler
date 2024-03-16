@@ -57,7 +57,12 @@ variable_decl
         : VAR ID (COMMA ID)* ':' type
         ;
 
-type    : INT
+type    : basic_type                                    # basicType
+        | ARRAY LCOR INTVAL RCOR OF basic_type          # arrayType
+        ;
+
+basic_type
+        : INT
         | FLOAT
         | BOOL
         | CHAR
@@ -89,8 +94,8 @@ statement
 
 // Grammar for left expressions (l-values in C++)
 left_expr
-        : ident                 # leftExprIdent
-        | ident '[' expr ']'    # leftExprArray
+        : ident                         # leftExprIdent
+        | ident LCOR expr RCOR          # leftExprArray
         ;
 
 // Grammar for function calls
@@ -139,8 +144,12 @@ INT       : 'int';
 FLOAT     : 'float';
 BOOL      : 'bool';
 CHAR      : 'char';
+ARRAY     : 'array';
+OF        : 'of';
 LPAR      : '(';
 RPAR      : ')';
+LCOR      : '[';
+RCOR      : ']';
 COMMA     : ',';
 IF        : 'if';
 THEN      : 'then';
