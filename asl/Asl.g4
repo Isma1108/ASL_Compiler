@@ -95,11 +95,7 @@ left_expr
 
 // Grammar for function calls
 function_call
-        : ident LPAR exprs? RPAR
-        ;      
-
-exprs
-        : expr (COMMA expr)*
+        : ID LPAR (expr (COMMA expr)*)? RPAR
         ;
 
 // Grammar for expressions with boolean, relational and aritmetic operators
@@ -113,7 +109,7 @@ expr    : '(' expr ')'                                      # parenthesis
         | expr op=OR expr                                   # binaryOperation
         | (INTVAL|FLOATVAL|CHARVAL|BOOLVAL)                 # value
         | left_expr                                         # leftExprValue
-        | functionCall                                      # funcCallExpr
+        | function_call                                     # funcCallExpr
         ;
 
 // Identifiers
