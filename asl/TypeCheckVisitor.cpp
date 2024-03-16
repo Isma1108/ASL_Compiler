@@ -86,6 +86,12 @@ antlrcpp::Any TypeCheckVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   DEBUG_ENTER();
   SymTable::ScopeId sc = getScopeDecor(ctx);
   Symbols.pushThisScope(sc);
+  if (ctx->basic_type()) {
+    TypesMgr::TypeId t = getTypeDecor(ctx->basic_type());
+    setCurrentFunctionTy(t);
+  } else {
+    setCurrentFunctionTy(Types.createVoidTy());
+  }
   visit(ctx->statements());
   Symbols.popScope();
   DEBUG_EXIT();
@@ -244,6 +250,31 @@ antlrcpp::Any TypeCheckVisitor::visitWriteExpr(AslParser::WriteExprContext *ctx)
   TypesMgr::TypeId t1 = getTypeDecor(ctx->expr());
   if ((not Types.isErrorTy(t1)) and (not Types.isPrimitiveTy(t1)))
     Errors.readWriteRequireBasic(ctx);
+  DEBUG_EXIT();
+  return 0;
+}
+
+antlrcpp::Any TypeCheckVisitor::visitReturnStmt(AslParser::ReturnStmtContext *ctx) {
+  DEBUG_ENTER();
+  visitChildren(ctx);
+  TypesMgr::TypeId return_type = getCurrentFunctionTy();
+  if (Types.isVoidTy(return_type)) {
+    if (ctx->expr()) {
+      Errors.incompatibleReturn(ctx->RETURN());
+      DEBUG_EXIT();
+      return 0;
+    }
+  } else if (!ctx->expr()) {
+    Errors.incompatibleReturn(ctx->RETURN());
+    DEBUG_EXIT();
+    return 0;
+  } else {
+    TypesMgr::TypeId expr_type = getTypeDecor(ctx->expr());
+    if ((not Types.isErrorTy(expr_type)) and
+        (not Types.copyableTypes(return_type, expr_type))) {
+          Errors.incompatibleReturn(ctx->RETURN());
+        }
+  }
   DEBUG_EXIT();
   return 0;
 }

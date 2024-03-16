@@ -78,27 +78,26 @@ antlrcpp::Any SymbolsVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   DEBUG_ENTER();
   std::string funcName = ctx->ID()->getText();
   SymTable::ScopeId sc = Symbols.pushNewScope(funcName);
+
   putScopeDecor(ctx, sc);
   visit(ctx->parameters());
-  visit(ctx->declarations());
-
-  // Symbols.print();
-  Symbols.popScope();
   std::string ident = ctx->ID()->getText();
+  std::vector<TypesMgr::TypeId> lParamsTy;
+  for (uint i=0; i<ctx->parameters()->parameter_decl().size(); i++) {
+    lParamsTy.push_back(getTypeDecor(ctx->parameters()->parameter_decl(i)->type()));
+  }
+  TypesMgr::TypeId tRet = Types.createVoidTy();
+  if (ctx->basic_type()) {
+    visit(ctx->basic_type());
+    tRet = getTypeDecor(ctx->basic_type());
+  }
+  TypesMgr::TypeId tFunc = Types.createFunctionTy(lParamsTy, tRet);
+  visit(ctx->declarations());
+  Symbols.popScope();
+
   if (Symbols.findInCurrentScope(ident)) {
     Errors.declaredIdent(ctx->ID());
-  }
-  else {
-    std::vector<TypesMgr::TypeId> lParamsTy;
-    for (uint i=0; i<ctx->parameters()->parameter_decl().size(); i++) {
-      lParamsTy.push_back(getTypeDecor(ctx->parameters()->parameter_decl(i)->type()));
-    }
-    TypesMgr::TypeId tRet = Types.createVoidTy();
-    if (ctx->type()){
-      visit(ctx->type());
-      tRet = getTypeDecor(ctx->type());
-    }
-    TypesMgr::TypeId tFunc = Types.createFunctionTy(lParamsTy, tRet);
+  } else {
     Symbols.addFunction(ident, tFunc);
   }
   DEBUG_EXIT();
@@ -129,15 +128,13 @@ antlrcpp::Any SymbolsVisitor::visitVariable_decl(AslParser::Variable_declContext
   DEBUG_ENTER();
   visit(ctx->type());
   TypesMgr::TypeId t = getTypeDecor(ctx->type());
-
-  //Now we can have multiple-variable declaration in one line, so we need to check for all of 
-  //them if the identifier is already used.
   for (const auto& id : ctx->ID()) {
     std::string ident = id->getText();
     if (Symbols.findInCurrentScope(ident)) {
       Errors.declaredIdent(id);
+    } else {
+      Symbols.addLocalVar(ident, t);
     }
-    else Symbols.addLocalVar(ident, t);
   }
   DEBUG_EXIT();
   return 0;

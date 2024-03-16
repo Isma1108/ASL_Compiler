@@ -72,6 +72,7 @@ public:
   antlrcpp::Any visitWhileStmt(AslParser::WhileStmtContext *ctx);
   //antlrcpp::Any visitProcCall(AslParser::ProcCallContext *ctx);
   antlrcpp::Any visitFuncCallExpr(AslParser::FuncCallExprContext *ctx);
+  antlrcpp::Any visitReturnStmt(AslParser::ReturnStmtContext *ctx);
   antlrcpp::Any visitReadStmt(AslParser::ReadStmtContext *ctx);
   antlrcpp::Any visitWriteExpr(AslParser::WriteExprContext *ctx);
   // antlrcpp::Any visitWriteString(AslParser::WriteStringContext *ctx);
