@@ -299,21 +299,27 @@ antlrcpp::Any TypeCheckVisitor::visitLeftExprIdent(AslParser::LeftExprIdentConte
 
 antlrcpp::Any TypeCheckVisitor::visitLeftExprArray(AslParser::LeftExprArrayContext *ctx) {
   DEBUG_ENTER();
-  visit(ctx->ident());
-  visit(ctx->expr());
-  TypesMgr::TypeId array_type = getTypeDecor(ctx->ident());
-  if (not Types.isErrorTy(array_type) and not Types.isArrayTy(array_type)) {
-    Errors.nonArrayInArrayAccess(ctx->ident());
-    putTypeDecor(ctx, Types.createErrorTy());
-  }
-  else {
-    putTypeDecor(ctx, Types.getArrayElemType(array_type));
-  }
-  putIsLValueDecor(ctx, true);
+  visitChildren(ctx);
   TypesMgr::TypeId expression_type = getTypeDecor(ctx->expr());
   if (not Types.isErrorTy(expression_type) and not Types.isIntegerTy(expression_type)) {
     Errors.nonIntegerIndexInArrayAccess(ctx->expr());
   }
+  TypesMgr::TypeId array_type = getTypeDecor(ctx->ident());
+  if(Types.isErrorTy(array_type)) {
+    putTypeDecor(ctx, Types.createErrorTy());
+    putIsLValueDecor(ctx, true);
+    DEBUG_EXIT();
+    return 0;
+  }
+  if (not Types.isArrayTy(array_type)) {
+    Errors.nonArrayInArrayAccess(ctx->ident());
+    putTypeDecor(ctx, Types.createErrorTy());
+    putIsLValueDecor(ctx, true);
+    DEBUG_EXIT();
+    return 0;
+  }
+  putTypeDecor(ctx, Types.getArrayElemType(array_type));
+  putIsLValueDecor(ctx, true);
   DEBUG_EXIT();
   return 0;
 }
