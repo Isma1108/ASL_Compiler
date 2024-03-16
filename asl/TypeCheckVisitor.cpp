@@ -386,18 +386,28 @@ antlrcpp::Any TypeCheckVisitor::visitArithmeticUnary(AslParser::ArithmeticUnaryC
 	return 0;
 }
 
+// '%' only allows integer values & errors. '*' and '/' allow numerics and errors. If there is a float then ret type is float.
 antlrcpp::Any TypeCheckVisitor::visitArithmetic(AslParser::ArithmeticContext *ctx) {
   DEBUG_ENTER();
-  visit(ctx->expr(0));
+  visitChildren(ctx);
   TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
-  visit(ctx->expr(1));
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
-  if (((not Types.isErrorTy(t1)) and (not Types.isNumericTy(t1))) or
-      ((not Types.isErrorTy(t2)) and (not Types.isNumericTy(t2))))
-    Errors.incompatibleOperator(ctx->op);
-  TypesMgr::TypeId t = Types.createIntegerTy();
-  putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, false);
+  if (ctx->MOD()) {
+    if ((not Types.isErrorTy(t1) and not Types.isIntegerTy(t1)) or
+        (not Types.isErrorTy(t2) and not Types.isIntegerTy(t2)))
+      Errors.incompatibleOperator(ctx->op);
+    putTypeDecor(ctx, Types.createIntegerTy());
+  } else {
+    if ((not Types.isErrorTy(t1) and not Types.isNumericTy(t1)) or
+        (not Types.isErrorTy(t2) and not Types.isNumericTy(t2)))
+      Errors.incompatibleOperator(ctx->op);
+    if (Types.isFloatTy(t1) or Types.isFloatTy(t2)) {
+      putTypeDecor(ctx, Types.createFloatTy());
+    } else {
+      putTypeDecor(ctx, Types.createIntegerTy());
+    }
+  }
   DEBUG_EXIT();
   return 0;
 }
