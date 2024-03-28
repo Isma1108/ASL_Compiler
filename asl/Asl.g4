@@ -76,7 +76,7 @@ statement
           // while-do-endwhile statement
         | WHILE expr DO statements ENDWHILE                     # whileStmt
           // A function/procedure call has a list of arguments in parenthesis (possibly empty)
-        | ident '(' ')' ';'                                     # procCall
+        | function_call ';'                                     # procCall
           // Read a variable
         | READ left_expr ';'                                    # readStmt
           // Write an expression
@@ -94,7 +94,7 @@ left_expr
         ;
 
 function_call
-        : ident LPAR exprs_call? RPAR       #functionCall
+        : ident LPAR exprs_call? RPAR 
         ;      
 
 exprs_call

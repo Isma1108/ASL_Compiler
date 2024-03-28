@@ -167,7 +167,7 @@ antlrcpp::Any CodeGenVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   DEBUG_ENTER();
   instructionList code;
   // std::string name = ctx->ident()->ID()->getSymbol()->getText();
-  std::string name = ctx->ident()->getText();
+  std::string name = ctx->function_call()->ident()->getText();
   code = instruction::CALL(name);
   DEBUG_EXIT();
   return code;

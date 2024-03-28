@@ -160,9 +160,10 @@ antlrcpp::Any TypeCheckVisitor::visitWhileStmt(AslParser::WhileStmtContext *ctx)
   return 0;
 }
 
+/*
 antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   DEBUG_ENTER();
-  visit(ctx->ident());
+  visit(ctx->function_call());
   TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
   if (Types.isErrorTy(t1)) {
     ;
@@ -172,6 +173,7 @@ antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   DEBUG_EXIT();
   return 0;
 }
+*/
 
 antlrcpp::Any TypeCheckVisitor::visitReadStmt(AslParser::ReadStmtContext *ctx) {
   DEBUG_ENTER();
@@ -371,13 +373,20 @@ antlrcpp::Any TypeCheckVisitor::visitFunctionValue(AslParser::FunctionValueConte
   visit(ctx->function_call());
   TypesMgr::TypeId t = getTypeDecor(ctx->function_call());
 
+  if (Types.isVoidTy(t)) {
+    Errors.isNotFunction(ctx->function_call());
+    putTypeDecor(ctx, Types.createErrorTy());
+    DEBUG_EXIT();
+    return 0;
+  }
+
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, false);
   DEBUG_EXIT();
   return 0;
 }
 
-antlrcpp::Any TypeCheckVisitor::visitFunctionCall(AslParser::FunctionCallContext *ctx) {
+antlrcpp::Any TypeCheckVisitor::visitFunction_call(AslParser::Function_callContext *ctx) {
   DEBUG_ENTER();
   visit(ctx->ident());
   TypesMgr::TypeId t = getTypeDecor(ctx->ident());
