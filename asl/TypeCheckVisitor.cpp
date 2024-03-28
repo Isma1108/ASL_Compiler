@@ -86,7 +86,10 @@ antlrcpp::Any TypeCheckVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   DEBUG_ENTER();
   SymTable::ScopeId sc = getScopeDecor(ctx);
   Symbols.pushThisScope(sc);
-  // Symbols.print();
+  
+  TypesMgr::TypeId t = getTypeDecor(ctx);
+  setCurrentFunctionTy(t);
+
   visit(ctx->statements());
   Symbols.popScope();
   DEBUG_EXIT();
@@ -175,6 +178,26 @@ antlrcpp::Any TypeCheckVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
 }
 */
 
+antlrcpp::Any TypeCheckVisitor::visitReturnStmt(AslParser::ReturnStmtContext *ctx) {
+  DEBUG_ENTER();
+  
+  TypesMgr::TypeId correctretType = Types.getFuncReturnType(getCurrentFunctionTy());
+  TypesMgr::TypeId retType;
+
+  if (ctx->expr()) {
+    visit(ctx->expr());
+    retType = getTypeDecor(ctx->expr());
+  }
+  else retType = Types.createVoidTy();
+  
+  if (not Types.isErrorTy(retType) and not Types.copyableTypes(correctretType, retType)) {
+    Errors.incompatibleReturn(ctx->RETURN());
+  }
+
+  DEBUG_EXIT();
+  return 0;
+}
+
 antlrcpp::Any TypeCheckVisitor::visitReadStmt(AslParser::ReadStmtContext *ctx) {
   DEBUG_ENTER();
   visit(ctx->left_expr());
@@ -230,7 +253,10 @@ antlrcpp::Any TypeCheckVisitor::visitLeftExprArray(AslParser::LeftExprArrayConte
     Errors.nonArrayInArrayAccess(ctx->ident());
     putTypeDecor(ctx, Types.createErrorTy());
   }
-  else putTypeDecor(ctx, Types.getArrayElemType(t));
+  else {
+    if (Types.isArrayTy(t)) putTypeDecor(ctx, Types.getArrayElemType(t));
+    else putTypeDecor(ctx, Types.createErrorTy());
+  }
   
   putIsLValueDecor(ctx, b);
 
@@ -313,11 +339,25 @@ antlrcpp::Any TypeCheckVisitor::visitArithmetic(AslParser::ArithmeticContext *ct
   TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
   visit(ctx->expr(1));
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
-  if (((not Types.isErrorTy(t1)) and (not Types.isNumericTy(t1))) or
-      ((not Types.isErrorTy(t2)) and (not Types.isNumericTy(t2))))
-    Errors.incompatibleOperator(ctx->op);
-  TypesMgr::TypeId t = Types.createIntegerTy();
-  putTypeDecor(ctx, t);
+
+  if (ctx->MOD()) {
+    if (((not Types.isErrorTy(t1)) and (not Types.isIntegerTy(t1))) or 
+      ((not Types.isErrorTy(t2)) and (not Types.isIntegerTy(t2)))) {
+      Errors.incompatibleOperator(ctx->op);
+    }
+    putTypeDecor(ctx, Types.createIntegerTy());
+  }
+  else {
+    if (((not Types.isErrorTy(t1)) and (not Types.isNumericTy(t1))) or
+        ((not Types.isErrorTy(t2)) and (not Types.isNumericTy(t2))))
+      Errors.incompatibleOperator(ctx->op);
+    
+    //When integer values are aritmethically operated with float values, 
+    //an implicit conversion to float is performed before the actual operation, 
+    //and the result of the operation has type float.
+    if (Types.isFloatTy(t1) or Types.isFloatTy(t2)) putTypeDecor(ctx, Types.createFloatTy());
+    else putTypeDecor(ctx, Types.createIntegerTy());
+  }
   putIsLValueDecor(ctx, false);
   DEBUG_EXIT();
   return 0;
