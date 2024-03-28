@@ -76,23 +76,35 @@ antlrcpp::Any SymbolsVisitor::visitProgram(AslParser::ProgramContext *ctx) {
 
 antlrcpp::Any SymbolsVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   DEBUG_ENTER();
-  std::string funcName = ctx->ID()->getText();
+  const std::string &funcName = ctx->ID()->getText();
+
+  //We push the new scope and put the ScopeDecor
   SymTable::ScopeId sc = Symbols.pushNewScope(funcName);
   putScopeDecor(ctx, sc);
+
   visit(ctx->parameters());
   visit(ctx->declarations());
-  // Symbols.print();
+  
+  std::vector<TypesMgr::TypeId> lParamsTy;
+  for (const auto &param : ctx->parameters()->parameter_decl()) {
+    lParamsTy.push_back(getTypeDecor(param->type()));
+  }
+  TypesMgr::TypeId tRet = Types.createVoidTy();
+  if (ctx->type()) {
+    visit(ctx->type());
+    tRet = getTypeDecor(ctx->type());
+  }
+
+  TypesMgr::TypeId tFunc = Types.createFunctionTy(lParamsTy, tRet);
+  putTypeDecor(ctx, tFunc);
+
   Symbols.popScope();
-  std::string ident = ctx->ID()->getText();
-  if (Symbols.findInCurrentScope(ident)) {
-    Errors.declaredIdent(ctx->ID());
-  }
-  else {
-    std::vector<TypesMgr::TypeId> lParamsTy;
-    TypesMgr::TypeId tRet = Types.createVoidTy();
-    TypesMgr::TypeId tFunc = Types.createFunctionTy(lParamsTy, tRet);
-    Symbols.addFunction(ident, tFunc);
-  }
+
+  //If the function ID is already in use -> we show an error
+  //Otherwise we add the function in the scope were the function was defined (global?)
+  if (Symbols.findInCurrentScope(funcName)) Errors.declaredIdent(ctx->ID());
+  else Symbols.addFunction(funcName, tFunc);
+
   DEBUG_EXIT();
   return 0;
 }

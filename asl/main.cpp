@@ -48,27 +48,36 @@
 
 #include <cstdio>     // fopen
 #include <cstdlib>    // EXIT_FAILURE, EXIT_SUCCESS
+#include <cstring>    // strcmp
 
 // using namespace std;
 // using namespace antlr4;
 
 
 int main(int argc, const char* argv[]) {
-  // check the correct use of the program
-  if (argc > 2) {
-    std::cout << "Usage: ./main [<file>]" << std::endl;
+  // early stop options
+  bool onlySyntaxOpt  = (argc > 1 and std::strcmp(argv[1], "--onlySyntax") == 0);
+  bool onlySyntaxOpt2 = (argc > 2 and std::strcmp(argv[2], "--onlySyntax") == 0);
+  bool noCodegenOpt   = (argc > 1 and std::strcmp(argv[1], "--noCodegen")  == 0);
+  bool noCodeGenOpt2  = (argc > 2 and std::strcmp(argv[2], "--noCodegen")  == 0);
+  // check options and correct use of the program
+  if (argc > 3 or onlySyntaxOpt2 or noCodeGenOpt2 or
+      (argc == 3 and not onlySyntaxOpt and not noCodegenOpt)) {
+    std::cout << "Usage: ./asl [--onlySyntax|--noCodegen] [<file>]" << std::endl;
     return EXIT_FAILURE;
   }
-  if (argc == 2 and not std::fopen(argv[1], "r")) {
-    std::cout << "No such file: " << argv[1] << std::endl;
-    return EXIT_FAILURE;
+  if (argc == 3 or (argc == 2 and not onlySyntaxOpt and not noCodegenOpt)) {
+    if (not std::fopen(argv[argc-1], "r")) {
+      std::cout << "No such file: " << argv[argc-1] << std::endl;
+      return EXIT_FAILURE;
+    }
   }
 
   // open input file (or std::cin) and create a character stream
   antlr4::ANTLRInputStream input;
-  if (argc == 2) {  // read from <file>
+  if ((argc == 3) or (argc == 2 and not onlySyntaxOpt and not noCodegenOpt)) {  // read from <file>
     std::ifstream stream;
-    stream.open(argv[1]);
+    stream.open(argv[argc-1]);
     input = antlr4::ANTLRInputStream(stream);
   }
   else {            // read fron std::cin
@@ -95,6 +104,11 @@ int main(int argc, const char* argv[]) {
   // print the parse tree (for debugging purposes)
   // std::cout << tree->toStringTree(&parser) << std::endl;
 
+  if (onlySyntaxOpt) {
+    std::cout << "-- Early stop: no typecheck has been made." << std::endl;
+    return EXIT_SUCCESS;
+  }
+  
   // auxililary classes we are going to need to store information while
   // traversing the tree. They are described below in this document
   TypesMgr       types;
@@ -117,6 +131,11 @@ int main(int argc, const char* argv[]) {
     return EXIT_FAILURE;
   }
 
+  if (noCodegenOpt) {
+    std::cout << "-- Early stop: no code generated." << std::endl;
+    return EXIT_SUCCESS;
+  }
+  
   // create a third visitor that will return the generated code
   // for each part of the tree, and will store it in 'mycode'
   CodeGenVisitor codegenerator(types, symbols, decorations);
@@ -127,19 +146,19 @@ int main(int argc, const char* argv[]) {
 
   // uncomment the following lines to generate LLVM code
   // and write it to a .ll file
-  // std::string llvmStr = mycode.dumpLLVM(types, symbols);
-  // std::string llvmFileName;
-  // if (argc == 2) { // read from <file>
-  //   std::string inputFileName = std::string(argv[1]);
-  //   std::size_t slashPos = inputFileName.rfind("/");
-  //   std::size_t dotPos   = inputFileName.rfind(".");
-  //   llvmFileName = inputFileName.substr(slashPos+1, dotPos-slashPos-1) + ".ll";
-  // }
-  // else {           // read fron std::cin
-  //   llvmFileName = "output.ll";
-  // }
-  // std::ofstream myLLVMFile(llvmFileName, std::ofstream::out);
-  // myLLVMFile << llvmStr << std::endl;
+  std::string llvmStr = mycode.dumpLLVM(types, symbols);
+  std::string llvmFileName;
+  if (argc == 2) { // read from <file>
+    std::string inputFileName = std::string(argv[1]);
+    std::size_t slashPos = inputFileName.rfind("/");
+    std::size_t dotPos   = inputFileName.rfind(".");
+    llvmFileName = inputFileName.substr(slashPos+1, dotPos-slashPos-1) + ".ll";
+  }
+  else {           // read fron std::cin
+    llvmFileName = "output.ll";
+  }
+  std::ofstream myLLVMFile(llvmFileName, std::ofstream::out);
+  myLLVMFile << llvmStr << std::endl;
 
   return EXIT_SUCCESS;
 }

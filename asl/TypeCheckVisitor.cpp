@@ -128,8 +128,8 @@ antlrcpp::Any TypeCheckVisitor::visitAssignStmt(AslParser::AssignStmtContext *ct
   TypesMgr::TypeId t1 = getTypeDecor(ctx->left_expr());
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr());
   if ((not Types.isErrorTy(t1)) and (not Types.isErrorTy(t2)) and
-      (not Types.copyableTypes(t1, t2)))
-    Errors.incompatibleAssignment(ctx->ASSIGN());
+      (not Types.copyableTypes(t1, t2))) 
+      Errors.incompatibleAssignment(ctx->ASSIGN());
   if ((not Types.isErrorTy(t1)) and (not getIsLValueDecor(ctx->left_expr())))
     Errors.nonReferenceableLeftExpr(ctx->left_expr());
   DEBUG_EXIT();
@@ -218,7 +218,7 @@ antlrcpp::Any TypeCheckVisitor::visitLeftExprArray(AslParser::LeftExprArrayConte
   DEBUG_ENTER();
 
   //First we see the array to detect
-  //if we are doing array acces to a array array operand
+  //if we are doing array acces to a array operand
   visit(ctx->ident());
   TypesMgr::TypeId t = getTypeDecor(ctx->ident());
   bool b = getIsLValueDecor(ctx->ident());
@@ -370,6 +370,7 @@ antlrcpp::Any TypeCheckVisitor::visitFunctionValue(AslParser::FunctionValueConte
   DEBUG_ENTER();
   visit(ctx->function_call());
   TypesMgr::TypeId t = getTypeDecor(ctx->function_call());
+
   putTypeDecor(ctx, t);
   putIsLValueDecor(ctx, false);
   DEBUG_EXIT();
@@ -379,10 +380,33 @@ antlrcpp::Any TypeCheckVisitor::visitFunctionValue(AslParser::FunctionValueConte
 antlrcpp::Any TypeCheckVisitor::visitFunctionCall(AslParser::FunctionCallContext *ctx) {
   DEBUG_ENTER();
   visit(ctx->ident());
-  TypesMgr::TypeId t1 = getTypeDecor(ctx->ident());
-  putTypeDecor(ctx, t1);
-  bool b = getIsLValueDecor(ctx->ident());
-  putIsLValueDecor(ctx, b);
+  TypesMgr::TypeId t = getTypeDecor(ctx->ident());
+  
+  if (ctx->exprs_call()) visit(ctx->exprs_call());
+
+  if (Types.isFunctionTy(t)) {
+    //First we check that the number of parameters is correct
+    //Then the type check
+    std::size_t numParams = (ctx->exprs_call() ? ctx->exprs_call()->expr().size() : 0);
+    if (numParams != Types.getNumOfParameters(t)){
+      Errors.numberOfParameters(ctx);
+    }
+    else {
+      for (unsigned int i = 0; i < numParams; ++i) {
+        TypesMgr::TypeId t1 = getTypeDecor(ctx->exprs_call()->expr(i));
+        TypesMgr::TypeId t2 = Types.getParameterType(t, i);
+        if (not Types.isErrorTy(t1) and not Types.copyableTypes(t2, t1)) {
+            Errors.incompatibleParameter(ctx->exprs_call()->expr(i), i+1, ctx);
+        }
+      }
+    }
+    putTypeDecor(ctx, Types.getFuncReturnType(t));
+  }
+  else {
+    if (not Types.isErrorTy(t)) Errors.isNotCallable(ctx->ident());
+    putTypeDecor(ctx, Types.createErrorTy());
+  }
+
   DEBUG_EXIT();
   return 0;
 }

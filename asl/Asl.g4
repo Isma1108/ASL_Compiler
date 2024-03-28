@@ -89,13 +89,17 @@ statement
 
 // Grammar for left expressions (l-values in C++)
 left_expr
-        : ident                 # leftExprIdent
-        | ident '[' expr ']'    # leftExprArray
+        : ident                       # leftExprIdent
+        | ident LBRACK expr RBRACK    # leftExprArray
         ;
 
 function_call
-        : ident LPAR RPAR       #functionCall
+        : ident LPAR exprs_call? RPAR       #functionCall
         ;      
+
+exprs_call
+        : expr (COMMA expr)*
+        ;
 
 // Grammar for expressions with boolean, relational and aritmetic operators
 expr    : '(' expr ')'                                      # parenthesis 
@@ -120,49 +124,84 @@ ident   : ID
 /// Lexer Rules
 //////////////////////////////////////////////////
 
+//Assign
 ASSIGN    : '=';
+
+//Relational operators
 EQUAL     : '==';
 NEQUAL    : '!=';
 GT        : '>';
 GE        : '>=';
 LT        : '<';
 LE        : '<=';
+
+//Arithmetic operators
 PLUS      : '+';
 MINUS     : '-';
 MUL       : '*';
 DIV       : '/';
-NOT       : 'not';
+
+//Logical operators
+NOT       : 'not';  //Unary operator
 AND       : 'and';
 OR        : 'or';
+
+//Variable
 VAR       : 'var';
+
+//Basic types
 INT       : 'int';
 FLOAT     : 'float';
 BOOL      : 'bool';
 CHAR      : 'char';
+
+
+//Some helpful  tokens
 LPAR      : '(';
 RPAR      : ')';
+LBRACK    : '[';
+RBRACK    : ']';
 COMMA     : ',';
+
+//CONTROL STRUCTURES
+
+//Alternative composition
 IF        : 'if';
 THEN      : 'then';
 ELSE      : 'else';
 ENDIF     : 'endif';
+
+//Iterative statements
 WHILE     : 'while';
 DO        : 'do';
 ENDWHILE  : 'endwhile';
+
+//Functions
 FUNC      : 'func';
 RETURN    : 'return';
 ENDFUNC   : 'endfunc';
+
+//Input/Output
 READ      : 'read';
 WRITE     : 'write';
-BOOLVAL   : 'true' | 'false';
+
+//Primitive Values
+BOOLVAL   : 'true' | 'false'; //It musk go before ID token to be recognized
 INTVAL    : DIGIT+ ;
 FLOATVAL  : DIGIT+ '.' DIGIT+;
 CHARVAL   : SINGLE_QUOTA (DIGIT | LETTER | '\\n' | '\\t') SINGLE_QUOTA;
+
+//Identifier (minimum priority)
 ID        : LETTER (LETTER | '_' | DIGIT)* ;
 
 
 // Strings (in quotes) with escape sequences
 STRING    : '"' ( ESC_SEQ | ~('\\'|'"') )* '"' ;
+
+
+// A fragment is a set of defined tokens that can be used to build more complex
+// lexer rules. Fragments cannot be directly referenced in grammar rules. They are
+// simply tools used internally by the lexer to construct larger and more complex tokens.
 
 fragment
 ESC_SEQ   : '\\' ('b'|'t'|'n'|'f'|'r'|'"'|'\''|'\\') ;
