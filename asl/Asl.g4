@@ -37,8 +37,9 @@ program : function+ EOF
         ;
 
 // A function has a name, a list of parameters and a list of statements
+// Remeber that functions only return basic types following ASL description
 function
-        : FUNC ID LPAR parameters RPAR (':' type)? declarations statements ENDFUNC
+        : FUNC ID LPAR parameters RPAR (':' basic_type)? declarations statements ENDFUNC
         ;
 
 parameters
@@ -57,7 +58,13 @@ variable_decl
         : VAR ID (COMMA ID)* ':' type
         ;
 
-type    : INT
+type     
+        : basic_type                                    #basicType
+        | ARRAY LBRACK INTVAL RBRACK OF basic_type      #arrayType
+        ;
+
+basic_type    
+        : INT
         | FLOAT
         | BOOL
         | CHAR
@@ -154,6 +161,10 @@ INT       : 'int';
 FLOAT     : 'float';
 BOOL      : 'bool';
 CHAR      : 'char';
+
+//Array type
+ARRAY     : 'array';
+OF        : 'of';
 
 
 //Some helpful  tokens
