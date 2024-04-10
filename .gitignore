@@ -6,6 +6,9 @@
 /asl/*.o
 /common/*.o
 
+# t-Code file
+/asl/a.t
+
 # Antlr files
 /asl/Asl*
 !/asl/Asl.g4
