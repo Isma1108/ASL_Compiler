@@ -101,8 +101,10 @@ antlrcpp::Any CodeGenVisitor::visitDeclarations(AslParser::DeclarationsContext *
   DEBUG_ENTER();
   std::vector<var> lvars;
   for (auto & varDeclCtx : ctx->variable_decl()) {
-    var onevar = visit(varDeclCtx);
-    lvars.push_back(onevar);
+    std::vector<var> vars = visit(varDeclCtx);
+    for (auto var : vars) {
+      lvars.push_back(var);
+    }
   }
   DEBUG_EXIT();
   return lvars;
@@ -112,10 +114,12 @@ antlrcpp::Any CodeGenVisitor::visitVariable_decl(AslParser::Variable_declContext
   DEBUG_ENTER();
   TypesMgr::TypeId   t1 = getTypeDecor(ctx->type());
   std::size_t      size = Types.getSizeOfType(t1);
+  std::vector<var> vars;
+  for(auto varCtx : ctx->ID()) {
+    vars.push_back(var{varCtx->getText(), Types.to_string(t1), size});
+  }
   DEBUG_EXIT();
-  //For now (later will be different) we only access to the first var to avoid compilation 
-  //errors
-  return var{ctx->ID(0)->getText(), Types.to_string(t1), size};
+  return vars;
 }
 
 antlrcpp::Any CodeGenVisitor::visitStatements(AslParser::StatementsContext *ctx) {
@@ -226,21 +230,43 @@ antlrcpp::Any CodeGenVisitor::visitLeftExprArray(AslParser::LeftExprArrayContext
 
 antlrcpp::Any CodeGenVisitor::visitArithmetic(AslParser::ArithmeticContext *ctx) {
   DEBUG_ENTER();
-  CodeAttribs     && codAt1 = visit(ctx->expr(0));
+  CodeAttribs       codAt1 = * visit(ctx->expr(0));
   std::string         addr1 = codAt1.addr;
   instructionList &   code1 = codAt1.code;
   CodeAttribs     && codAt2 = visit(ctx->expr(1));
   std::string         addr2 = codAt2.addr;
   instructionList &   code2 = codAt2.code;
   instructionList &&   code = code1 || code2;
-  // TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
-  // TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
-  // TypesMgr::TypeId  t = getTypeDecor(ctx);
+  TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
+  TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
+  TypesMgr::TypeId  t = getTypeDecor(ctx);
+  
+  //std::string temp = "%"+codeCounters.newTEMP();
+
+  // t1 o t2 o els dos son float
+  if(Types.isFloatTy(t)) {
+    if(Types.isIntegerTy(t1)) {
+      std::string op1 = "%"+codeCounters.newTEMP();
+
+    } else if(Types.isIntegerTy(t2)) {
+      
+    }
+  } else {
+
+  }
+
   std::string temp = "%"+codeCounters.newTEMP();
-  if (ctx->MUL())
+  if (ctx->MUL()) {
     code = code || instruction::MUL(temp, addr1, addr2);
-  else // (ctx->PLUS())
+  } else if (ctx->DIV()) {
+    code = code || instruction::DIV(temp, addr1, addr2);
+  //} else if (ctx->MOD()) (todo) {
+  } else if (ctx->PLUS()) {
     code = code || instruction::ADD(temp, addr1, addr2);
+  } else { ///if (ctx->MINUS())
+    code = code || instruction::SUB(temp, addr1, addr2);
+  }
+
   CodeAttribs codAts(temp, "", code);
   DEBUG_EXIT();
   return codAts;
