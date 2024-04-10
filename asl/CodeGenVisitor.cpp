@@ -230,7 +230,7 @@ antlrcpp::Any CodeGenVisitor::visitLeftExprArray(AslParser::LeftExprArrayContext
 
 antlrcpp::Any CodeGenVisitor::visitArithmetic(AslParser::ArithmeticContext *ctx) {
   DEBUG_ENTER();
-  CodeAttribs       codAt1 = * visit(ctx->expr(0));
+  CodeAttribs     && codAt1 = visit(ctx->expr(0));
   std::string         addr1 = codAt1.addr;
   instructionList &   code1 = codAt1.code;
   CodeAttribs     && codAt2 = visit(ctx->expr(1));
