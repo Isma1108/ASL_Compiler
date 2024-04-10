@@ -146,6 +146,7 @@ int main(int argc, const char* argv[]) {
 
   // uncomment the following lines to generate LLVM code
   // and write it to a .ll file
+  /* We do not need to generate LLVM. We will use t-Code.
   std::string llvmStr = mycode.dumpLLVM(types, symbols);
   std::string llvmFileName;
   if (argc == 2) { // read from <file>
@@ -158,7 +159,7 @@ int main(int argc, const char* argv[]) {
     llvmFileName = "output.ll";
   }
   std::ofstream myLLVMFile(llvmFileName, std::ofstream::out);
-  myLLVMFile << llvmStr << std::endl;
+  myLLVMFile << llvmStr << std::endl; */
 
   return EXIT_SUCCESS;
 }
