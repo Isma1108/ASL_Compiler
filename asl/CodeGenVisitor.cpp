@@ -39,7 +39,7 @@
 #include <cstddef>    // std::size_t
 
 // uncomment the following line to enable debugging messages with DEBUG*
-// #define DEBUG_BUILD
+//#define DEBUG_BUILD
 #include "../common/debug.h"
 
 // using namespace std;
@@ -101,8 +101,9 @@ antlrcpp::Any CodeGenVisitor::visitDeclarations(AslParser::DeclarationsContext *
   DEBUG_ENTER();
   std::vector<var> lvars;
   for (auto & varDeclCtx : ctx->variable_decl()) {
-    var onevar = visit(varDeclCtx);
-    lvars.push_back(onevar);
+    const std::vector<var>& onelineVars = visit(varDeclCtx);
+    //lvars.push_back(onevar);
+    for (const auto & v : onelineVars) lvars.push_back(v);
   }
   DEBUG_EXIT();
   return lvars;
@@ -115,7 +116,12 @@ antlrcpp::Any CodeGenVisitor::visitVariable_decl(AslParser::Variable_declContext
   DEBUG_EXIT();
   //For now (later will be different) we only access to the first var to avoid compilation 
   //errors
-  return var{ctx->ID(0)->getText(), Types.to_string(t1), size};
+  std::vector<var> onelineVars;
+  for (const auto& id : ctx->ID()) {
+    onelineVars.push_back(var{id->getText(), Types.to_string(t1), size});
+  }
+  //return var{ctx->ID(0)->getText(), Types.to_string(t1), size};
+  return onelineVars;
 }
 
 antlrcpp::Any CodeGenVisitor::visitStatements(AslParser::StatementsContext *ctx) {
@@ -220,6 +226,51 @@ antlrcpp::Any CodeGenVisitor::visitLeftExprArray(AslParser::LeftExprArrayContext
   //We will change this later
   DEBUG_ENTER();
   CodeAttribs && codAts = visit(ctx->ident());
+  DEBUG_EXIT();
+  return codAts;
+}
+
+antlrcpp::Any CodeGenVisitor::visitParenthesis(AslParser::ParenthesisContext *ctx) {
+  DEBUG_ENTER();
+  CodeAttribs && codAts = visit(ctx->expr());
+  DEBUG_EXIT();
+  return codAts;
+}
+
+antlrcpp::Any CodeGenVisitor::visitBinaryOperation(AslParser::BinaryOperationContext *ctx) {
+  DEBUG_ENTER();
+  CodeAttribs     && codAt1 = visit(ctx->expr(0));
+  std::string         addr1 = codAt1.addr;
+  instructionList &   code1 = codAt1.code;
+  CodeAttribs     && codAt2 = visit(ctx->expr(1));
+  std::string         addr2 = codAt2.addr;
+  instructionList &   code2 = codAt2.code;
+  instructionList &&   code = code1 || code2;
+  // TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
+  // TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
+  // TypesMgr::TypeId  t = getTypeDecor(ctx);
+  std::string temp = "%"+codeCounters.newTEMP();
+  if (ctx->AND())
+    code = code || instruction::AND(temp, addr1, addr2);
+  else // (ctx->OR())
+    code = code || instruction::OR(temp, addr1, addr2);
+  CodeAttribs codAts(temp, "", code);
+  DEBUG_EXIT();
+  return codAts;
+}
+
+antlrcpp::Any CodeGenVisitor::visitArithmeticUnary(AslParser::ArithmeticUnaryContext *ctx) {
+  DEBUG_ENTER();
+  CodeAttribs && codAts = visit(ctx->expr());
+  DEBUG_EXIT();
+  return codAts;
+}
+
+
+
+antlrcpp::Any CodeGenVisitor::visitBinaryOperationUnary(AslParser::BinaryOperationUnaryContext *ctx) {
+  DEBUG_ENTER();
+  CodeAttribs && codAts = visit(ctx->expr());
   DEBUG_EXIT();
   return codAts;
 }

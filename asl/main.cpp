@@ -146,6 +146,7 @@ int main(int argc, const char* argv[]) {
 
   // uncomment the following lines to generate LLVM code
   // and write it to a .ll file
+  /*
   std::string llvmStr = mycode.dumpLLVM(types, symbols);
   std::string llvmFileName;
   if (argc == 2) { // read from <file>
@@ -159,6 +160,7 @@ int main(int argc, const char* argv[]) {
   }
   std::ofstream myLLVMFile(llvmFileName, std::ofstream::out);
   myLLVMFile << llvmStr << std::endl;
+  */
 
   return EXIT_SUCCESS;
 }
