@@ -79,10 +79,14 @@ public:
   antlrcpp::Any visitLeftExprIdent(AslParser::LeftExprIdentContext *ctx);
   antlrcpp::Any visitLeftExprArray(AslParser::LeftExprArrayContext *ctx);
   antlrcpp::Any visitArithmetic(AslParser::ArithmeticContext *ctx);
+  antlrcpp::Any visitArithmeticUnary(AslParser::ArithmeticUnaryContext *ctx);
   antlrcpp::Any visitRelational(AslParser::RelationalContext *ctx);
   antlrcpp::Any visitLeftExprValue(AslParser::LeftExprValueContext *ctx);
   antlrcpp::Any visitValue(AslParser::ValueContext *ctx);
   antlrcpp::Any visitIdent(AslParser::IdentContext *ctx);
+  antlrcpp::Any visitParenthesis(AslParser::ParenthesisContext *ctx);
+  antlrcpp::Any visitBinaryOperationUnary(AslParser::BinaryOperationUnaryContext *ctx);
+  antlrcpp::Any visitBinaryOperation(AslParser::BinaryOperationContext *ctx);
 
 private:
 
