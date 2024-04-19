@@ -8,6 +8,8 @@
 
 # t-Code file
 /asl/a.t
+/asl/tmp.t
+/asl/tmp.out
 
 # Antlr files
 /asl/Asl*

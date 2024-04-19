@@ -167,6 +167,28 @@ antlrcpp::Any CodeGenVisitor::visitIfStmt(AslParser::IfStmtContext *ctx) {
   return code;
 }
 
+antlrcpp::Any CodeGenVisitor::visitWhileStmt(AslParser::WhileStmtContext *ctx) {
+  DEBUG_ENTER();
+  instructionList code;
+  CodeAttribs     && codAtsE = visit(ctx->expr());
+  // Conditional code
+  std::string          addr1 = codAtsE.addr;
+  instructionList &    code1 = codAtsE.code;
+  // Statements block code
+  instructionList &&   code2 = visit(ctx->statements());
+  std::string label = codeCounters.newLabelWHILE();
+  std::string labelBeginWhile = "beginwhile"+label;
+  std::string labelEndWhile = "endwhile"+label;
+  code =  instruction::LABEL(labelBeginWhile) ||
+          code1 ||
+          instruction::FJUMP(addr1, labelEndWhile) ||
+          code2 ||
+          instruction::UJUMP(labelBeginWhile) ||
+          instruction::LABEL(labelEndWhile);
+  DEBUG_EXIT();
+  return code;
+}
+
 antlrcpp::Any CodeGenVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   DEBUG_ENTER();
   instructionList code;
@@ -416,7 +438,19 @@ antlrcpp::Any CodeGenVisitor::visitValue(AslParser::ValueContext *ctx) {
   DEBUG_ENTER();
   instructionList code;
   std::string temp = "%"+codeCounters.newTEMP();
-  code = instruction::ILOAD(temp, ctx->getText());
+  if(Types.isFloatTy(getTypeDecor(ctx))) {
+    code = instruction::FLOAD(temp, ctx->getText());
+  } else if(Types.isIntegerTy(getTypeDecor(ctx))) {
+    code = instruction::ILOAD(temp, ctx->getText());
+  } else if(Types.isBooleanTy(getTypeDecor(ctx))) {
+    if (ctx->getText() == "true") {
+      code = instruction::ILOAD(temp, "1");
+    } else {
+      code = instruction::ILOAD(temp, "0");
+    }
+  } else if(Types.isCharacterTy(getTypeDecor(ctx))) {
+    code = instruction::CLOAD(temp, ctx->getText());
+  }
   CodeAttribs codAts(temp, "", code);
   DEBUG_EXIT();
   return codAts;
