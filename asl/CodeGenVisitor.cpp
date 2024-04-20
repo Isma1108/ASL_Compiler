@@ -174,12 +174,46 @@ antlrcpp::Any CodeGenVisitor::visitIfStmt(AslParser::IfStmtContext *ctx) {
   CodeAttribs     && codAtsE = visit(ctx->expr());
   std::string          addr1 = codAtsE.addr;
   instructionList &    code1 = codAtsE.code;
-  // For now we only visit the first block of code of an if then else statement
   instructionList &&   code2 = visit(ctx->statements(0));
+
   std::string label = codeCounters.newLabelIF();
   std::string labelEndIf = "endif"+label;
-  code = code1 || instruction::FJUMP(addr1, labelEndIf) ||
-         code2 || instruction::LABEL(labelEndIf);
+
+  if (ctx->ELSE()) {
+    std::string labelElse = "else" + label;
+    instructionList && code3 = visit(ctx->statements(1));
+    code = code1 || instruction::FJUMP(addr1, labelElse) ||
+           code2 || instruction::UJUMP(labelEndIf) ||
+           instruction::LABEL(labelElse) || code3 ||
+           instruction::LABEL(labelEndIf);
+
+  }
+  else {
+    code = code1 || instruction::FJUMP(addr1, labelEndIf) ||
+          code2 || instruction::LABEL(labelEndIf);
+  }
+
+  DEBUG_EXIT();
+  return code;
+}
+
+antlrcpp::Any CodeGenVisitor::visitWhileStmt(AslParser::WhileStmtContext *ctx) {
+  DEBUG_ENTER();
+  instructionList code;
+  CodeAttribs && codAtsE = visit(ctx->expr());
+  std::string addrE = codAtsE.addr;
+  instructionList & codeE = codAtsE.code;
+  instructionList && codeS = visit(ctx->statements());
+
+  std::string label = codeCounters.newLabelWHILE();
+  std::string labelWhile = "while" + label;
+  std::string labelEndWhile = "endwhile" + label;
+
+  code = instruction::LABEL(labelWhile) || codeE ||
+         instruction::FJUMP(addrE, labelEndWhile) ||
+         codeS || instruction::UJUMP(labelWhile) ||
+         instruction::LABEL(labelEndWhile);
+
   DEBUG_EXIT();
   return code;
 }
@@ -402,7 +436,13 @@ antlrcpp::Any CodeGenVisitor::visitValue(AslParser::ValueContext *ctx) {
   DEBUG_ENTER();
   instructionList code;
   std::string temp = "%"+codeCounters.newTEMP();
-  code = instruction::ILOAD(temp, ctx->getText());
+  TypesMgr::TypeId t = getTypeDecor(ctx);
+
+  if (Types.isIntegerTy(t)) code = instruction::ILOAD(temp, ctx->getText());
+  else if (Types.isFloatTy(t)) code = instruction::FLOAD(temp, ctx->getText());
+  else if (Types.isCharacterTy(t)) code = instruction::CLOAD(temp, ctx->getText());
+  else code = instruction::ILOAD(temp, ctx->getText() == "true" ? "1" : "0"); // boolean value
+
   CodeAttribs codAts(temp, "", code);
   DEBUG_EXIT();
   return codAts;
