@@ -322,10 +322,11 @@ antlrcpp::Any TypeCheckVisitor::visitArithmeticUnary(AslParser::ArithmeticUnaryC
 	visit(ctx->expr());
 	TypesMgr::TypeId t = getTypeDecor(ctx->expr());
 	
-	if (not Types.isErrorTy(t) and not Types.isNumericTy(t))
+	if (not Types.isErrorTy(t) and not Types.isNumericTy(t)) {
 		Errors.incompatibleOperator(ctx->op);
+    t = Types.createErrorTy();
+  }
 
-  t = Types.createIntegerTy();
 	putTypeDecor(ctx, t);
 	putIsLValueDecor(ctx, false);
 

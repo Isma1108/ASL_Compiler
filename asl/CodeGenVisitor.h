@@ -105,6 +105,13 @@ private:
   TypesMgr::TypeId getCurrentFunctionTy ()                      const;
   void             setCurrentFunctionTy (TypesMgr::TypeId type);
 
+  //Useful coercion function
+  std::string doCoercionIntFloat(
+      instructionList & code,
+      TypesMgr::TypeId t1,
+      TypesMgr::TypeId t2,
+      const std::string & sourceAddr);
+
   // Getters for the necessary tree node atributes:
   //   Scope and Type
   SymTable::ScopeId getScopeDecor (antlr4::ParserRuleContext *ctx) const;
