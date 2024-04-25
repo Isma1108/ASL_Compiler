@@ -91,7 +91,7 @@ public:
   antlrcpp::Any visitParenthesis(AslParser::ParenthesisContext *ctx);
   antlrcpp::Any visitBinaryOperationUnary(AslParser::BinaryOperationUnaryContext *ctx);
   antlrcpp::Any visitBinaryOperation(AslParser::BinaryOperationContext *ctx);
-  antlrcpp::Any visitfuncCallExpr(AslParser::FuncCallExprContext *ctx);
+  antlrcpp::Any visitFuncCallExpr(AslParser::FuncCallExprContext *ctx);
 
 private:
 

@@ -92,6 +92,11 @@ antlrcpp::Any CodeGenVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   Symbols.pushThisScope(sc);
   subroutine subr(ctx->ID()->getText());
   codeCounters.reset();
+  TypesMgr::TypeId functionType = Symbols.getGlobalFunctionType(ctx->ID()->getText());
+  TypesMgr::TypeId returnType = Types.getFuncReturnType(functionType);
+  if (not Types.isVoidTy(returnType)) {
+    subr.add_param("_result", Types.to_string(returnType), false);
+  }
   std::vector<param> && params = visit(ctx->parameters());
   for (auto & p : params) {
     subr.add_param(p.name, p.type, p.isArray);
@@ -168,10 +173,15 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(AslParser::ReturnStmtContext *ctx)
   CodeAttribs     && codAt = visit(ctx->expr());
   std::string          addr = codAt.addr;
   instructionList &    code = codAt.code;
-  code =
-    code ||
-    instruction::PUSH(addr) ||
-    instruction::RETURN();
+  TypesMgr::TypeId returnType = getTypeDecor(ctx->expr());
+  if (Types.isIntegerTy(returnType) or Types.isBooleanTy(returnType)) {
+    code = code || instruction::ILOAD("_result", addr);
+  } else if (Types.isFloatTy(returnType)) {
+    code = code || instruction::FLOAD("_result", addr);
+  } else if (Types.isCharacterTy(returnType)) {
+    code = code || instruction::CLOAD("_result", addr);
+  }
+  code = code || instruction::RETURN();
   DEBUG_EXIT();
   return code;
 }
@@ -242,13 +252,27 @@ antlrcpp::Any CodeGenVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   return code;
 }
 
-antlrcpp::Any CodeGenVisitor::visitfuncCallExpr(AslParser::FuncCallExprContext *ctx) {
+antlrcpp::Any CodeGenVisitor::visitFuncCallExpr(AslParser::FuncCallExprContext *ctx) {
   DEBUG_ENTER();
   instructionList code;
   std::string name = ctx->function_call()->ID()->getText();
-  code = instruction::CALL(name);
+  code = instruction::PUSH(); // Space for return value
+  std::string ident = ctx->function_call()->ID()->getText();
+  std::vector<TypesMgr::TypeId> param_types = Types.getFuncParamsTypes(Symbols.getGlobalFunctionType(ident));
+  for(auto & expr : ctx->function_call()->expr()) {
+    CodeAttribs && codAt = visit(expr);
+    std::string addr = codAt.addr;
+    code = code || codAt.code || instruction::PUSH(addr);
+  }
+  code = code || instruction::CALL(name);
+  for(uint i=0; i<ctx->function_call()->expr().size(); i++) {
+    code = code || instruction::POP();
+  }
+  std::string res_temp = "%"+codeCounters.newTEMP();
+  code = code || instruction::POP(res_temp);
+  CodeAttribs codAts(res_temp, "", code);
   DEBUG_EXIT();
-  return code;
+  return codAts;
 }
 
 antlrcpp::Any CodeGenVisitor::visitReadStmt(AslParser::ReadStmtContext *ctx) {
@@ -439,10 +463,9 @@ antlrcpp::Any CodeGenVisitor::visitRelational(AslParser::RelationalContext *ctx)
   instructionList &&   code = code1 || code2;
   TypesMgr::TypeId t1 = getTypeDecor(ctx->expr(0));
   TypesMgr::TypeId t2 = getTypeDecor(ctx->expr(1));
-  TypesMgr::TypeId  t = getTypeDecor(ctx);
 
   // Type coercion
-  if(Types.isFloatTy(t)) {
+  if(Types.isFloatTy(t1) or Types.isFloatTy(t2)) {
     if(Types.isIntegerTy(t1)) {
       std::string temp = "%"+codeCounters.newTEMP();
       code = code || instruction::FLOAT(temp, addr1);
@@ -455,24 +478,46 @@ antlrcpp::Any CodeGenVisitor::visitRelational(AslParser::RelationalContext *ctx)
   }
 
   std::string temp_res = "%"+codeCounters.newTEMP();
-  if(ctx->EQUAL()) {
-    code = code || instruction::EQ(temp_res, addr1, addr2);
-  } else if(ctx->NEQUAL()) {
-    std::string temp_1 = "%"+codeCounters.newTEMP();
-    code = code || instruction::EQ(temp_1, addr1, addr2);
-    code = code || instruction::NOT(temp_res, temp_1);
-  } else if(ctx->GT()) {
-    std::string temp_1 = "%"+codeCounters.newTEMP();
-    code = code || instruction::LE(temp_1, addr1, addr2);
-    code = code || instruction::NOT(temp_res, temp_1);
-  } else if(ctx->GE()) {
-    std::string temp_1 = "%"+codeCounters.newTEMP();
-    code = code || instruction::LT(temp_1, addr1, addr2);
-    code = code || instruction::NOT(temp_res, temp_1);
-  } else if(ctx->LT()) {
-    code = code || instruction::LT(temp_res, addr1, addr2);
-  } else if(ctx->LE()) {
-    code = code || instruction::LE(temp_res, addr1, addr2);
+  if(Types.isFloatTy(t1) or Types.isFloatTy(t2)) {
+    if(ctx->EQUAL()) {
+      code = code || instruction::FEQ(temp_res, addr1, addr2);
+    } else if(ctx->NEQUAL()) {
+      std::string temp_1 = "%"+codeCounters.newTEMP();
+      code = code || instruction::FEQ(temp_1, addr1, addr2);
+      code = code || instruction::NOT(temp_res, temp_1);
+    } else if(ctx->GT()) {
+      std::string temp_1 = "%"+codeCounters.newTEMP();
+      code = code || instruction::FLE(temp_1, addr1, addr2);
+      code = code || instruction::NOT(temp_res, temp_1);
+    } else if(ctx->GE()) {
+      std::string temp_1 = "%"+codeCounters.newTEMP();
+      code = code || instruction::FLT(temp_1, addr1, addr2);
+      code = code || instruction::NOT(temp_res, temp_1);
+    } else if(ctx->LT()) {
+      code = code || instruction::FLT(temp_res, addr1, addr2);
+    } else if(ctx->LE()) {
+      code = code || instruction::FLE(temp_res, addr1, addr2);
+    }
+  } else {
+    if(ctx->EQUAL()) {
+      code = code || instruction::EQ(temp_res, addr1, addr2);
+    } else if(ctx->NEQUAL()) {
+      std::string temp_1 = "%"+codeCounters.newTEMP();
+      code = code || instruction::EQ(temp_1, addr1, addr2);
+      code = code || instruction::NOT(temp_res, temp_1);
+    } else if(ctx->GT()) {
+      std::string temp_1 = "%"+codeCounters.newTEMP();
+      code = code || instruction::LE(temp_1, addr1, addr2);
+      code = code || instruction::NOT(temp_res, temp_1);
+    } else if(ctx->GE()) {
+      std::string temp_1 = "%"+codeCounters.newTEMP();
+      code = code || instruction::LT(temp_1, addr1, addr2);
+      code = code || instruction::NOT(temp_res, temp_1);
+    } else if(ctx->LT()) {
+      code = code || instruction::LT(temp_res, addr1, addr2);
+    } else if(ctx->LE()) {
+      code = code || instruction::LE(temp_res, addr1, addr2);
+    }
   }
   CodeAttribs codAts(temp_res, "", code);
   DEBUG_EXIT();
