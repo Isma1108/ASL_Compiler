@@ -79,12 +79,23 @@ antlrcpp::Any CodeGenVisitor::visitProgram(AslParser::ProgramContext *ctx) {
   return my_code;
 }
 
+class param {
+  public:
+    std::string name;
+    std::string type;
+    bool isArray;
+};
+
 antlrcpp::Any CodeGenVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   DEBUG_ENTER();
   SymTable::ScopeId sc = getScopeDecor(ctx);
   Symbols.pushThisScope(sc);
   subroutine subr(ctx->ID()->getText());
   codeCounters.reset();
+  std::vector<param> && params = visit(ctx->parameters());
+  for (auto & p : params) {
+    subr.add_param(p.name, p.type, p.isArray);
+  }
   std::vector<var> && lvars = visit(ctx->declarations());
   for (auto & onevar : lvars) {
     subr.add_var(onevar);
@@ -95,6 +106,25 @@ antlrcpp::Any CodeGenVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   Symbols.popScope();
   DEBUG_EXIT();
   return subr;
+}
+
+antlrcpp::Any CodeGenVisitor::visitParameters(AslParser::ParametersContext *ctx) {
+  DEBUG_ENTER();
+  std::vector<param> params;
+  for(auto & param_decl : ctx->parameter_decl()) {
+    param param_info = visit(param_decl);
+    params.push_back(param_info);
+  }
+  DEBUG_EXIT();
+  return params;
+}
+
+antlrcpp::Any CodeGenVisitor::visitParameter_decl(AslParser::Parameter_declContext *ctx) {
+  DEBUG_ENTER();
+  TypesMgr::TypeId   t1 = getTypeDecor(ctx->type());
+  param p{ctx->ID()->getText(), Types.to_string(t1), Types.isArrayTy(t1)};
+  DEBUG_EXIT();
+  return p;
 }
 
 antlrcpp::Any CodeGenVisitor::visitDeclarations(AslParser::DeclarationsContext *ctx) {
@@ -129,6 +159,19 @@ antlrcpp::Any CodeGenVisitor::visitStatements(AslParser::StatementsContext *ctx)
     instructionList && codeS = visit(stCtx);
     code = code || codeS;
   }
+  DEBUG_EXIT();
+  return code;
+}
+
+antlrcpp::Any CodeGenVisitor::visitReturnStmt(AslParser::ReturnStmtContext *ctx) {
+  DEBUG_ENTER();
+  CodeAttribs     && codAt = visit(ctx->expr());
+  std::string          addr = codAt.addr;
+  instructionList &    code = codAt.code;
+  code =
+    code ||
+    instruction::PUSH(addr) ||
+    instruction::RETURN();
   DEBUG_EXIT();
   return code;
 }
@@ -193,6 +236,15 @@ antlrcpp::Any CodeGenVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   DEBUG_ENTER();
   instructionList code;
   // std::string name = ctx->ident()->ID()->getSymbol()->getText();
+  std::string name = ctx->function_call()->ID()->getText();
+  code = instruction::CALL(name);
+  DEBUG_EXIT();
+  return code;
+}
+
+antlrcpp::Any CodeGenVisitor::visitfuncCallExpr(AslParser::FuncCallExprContext *ctx) {
+  DEBUG_ENTER();
+  instructionList code;
   std::string name = ctx->function_call()->ID()->getText();
   code = instruction::CALL(name);
   DEBUG_EXIT();

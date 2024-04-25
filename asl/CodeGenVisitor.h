@@ -65,6 +65,9 @@ public:
   // Methods to visit each kind of node:
   antlrcpp::Any visitProgram(AslParser::ProgramContext *ctx);
   antlrcpp::Any visitFunction(AslParser::FunctionContext *ctx);
+  antlrcpp::Any visitReturnStmt(AslParser::ReturnStmtContext *ctx);
+  antlrcpp::Any visitParameters(AslParser::ParametersContext *ctx);
+  antlrcpp::Any visitParameter_decl(AslParser::Parameter_declContext *ctx);
   antlrcpp::Any visitDeclarations(AslParser::DeclarationsContext *ctx);
   antlrcpp::Any visitVariable_decl(AslParser::Variable_declContext *ctx);
   // antlrcpp::Any visitType(AslParser::TypeContext *ctx);
@@ -88,6 +91,7 @@ public:
   antlrcpp::Any visitParenthesis(AslParser::ParenthesisContext *ctx);
   antlrcpp::Any visitBinaryOperationUnary(AslParser::BinaryOperationUnaryContext *ctx);
   antlrcpp::Any visitBinaryOperation(AslParser::BinaryOperationContext *ctx);
+  antlrcpp::Any visitfuncCallExpr(AslParser::FuncCallExprContext *ctx);
 
 private:
 
