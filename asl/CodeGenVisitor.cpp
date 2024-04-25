@@ -94,6 +94,7 @@ antlrcpp::Any CodeGenVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   codeCounters.reset();
   TypesMgr::TypeId functionType = Symbols.getGlobalFunctionType(ctx->ID()->getText());
   TypesMgr::TypeId returnType = Types.getFuncReturnType(functionType);
+  setCurrentFunctionTy(returnType);
   if (not Types.isVoidTy(returnType)) {
     subr.add_param("_result", Types.to_string(returnType), false);
   }
@@ -173,7 +174,8 @@ antlrcpp::Any CodeGenVisitor::visitReturnStmt(AslParser::ReturnStmtContext *ctx)
   CodeAttribs     && codAt = visit(ctx->expr());
   std::string          addr = codAt.addr;
   instructionList &    code = codAt.code;
-  TypesMgr::TypeId returnType = getTypeDecor(ctx->expr());
+  TypesMgr::TypeId returnType = getCurrentFunctionTy();
+  // TypesMgr::TypeId tid = getTypeDecor(ctx->expr()); // TODO type coercion
   if (Types.isIntegerTy(returnType) or Types.isBooleanTy(returnType)) {
     code = code || instruction::ILOAD("_result", addr);
   } else if (Types.isFloatTy(returnType)) {
@@ -245,9 +247,25 @@ antlrcpp::Any CodeGenVisitor::visitWhileStmt(AslParser::WhileStmtContext *ctx) {
 antlrcpp::Any CodeGenVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
   DEBUG_ENTER();
   instructionList code;
-  // std::string name = ctx->ident()->ID()->getSymbol()->getText();
   std::string name = ctx->function_call()->ID()->getText();
-  code = instruction::CALL(name);
+  TypesMgr::TypeId funcType = Symbols.getGlobalFunctionType(name);
+  TypesMgr::TypeId returnType = Types.getFuncReturnType(funcType);
+  if (not Types.isVoidTy(returnType)) {
+    code = code || instruction::PUSH(); // Space for return value
+  }
+  std::vector<TypesMgr::TypeId> param_types = Types.getFuncParamsTypes(funcType);
+  for(auto & expr : ctx->function_call()->expr()) {
+    CodeAttribs && codAt = visit(expr);
+    std::string addr = codAt.addr;
+    code = code || codAt.code || instruction::PUSH(addr);
+  }
+  code = code || instruction::CALL(name);
+  for(uint i=0; i<ctx->function_call()->expr().size(); i++) {
+    code = code || instruction::POP();
+  }
+  if (not Types.isVoidTy(returnType)) {
+    code = code || instruction::POP(); // Space for return value
+  }
   DEBUG_EXIT();
   return code;
 }
@@ -256,9 +274,9 @@ antlrcpp::Any CodeGenVisitor::visitFuncCallExpr(AslParser::FuncCallExprContext *
   DEBUG_ENTER();
   instructionList code;
   std::string name = ctx->function_call()->ID()->getText();
+  TypesMgr::TypeId funcType = Symbols.getGlobalFunctionType(name);
   code = instruction::PUSH(); // Space for return value
-  std::string ident = ctx->function_call()->ID()->getText();
-  std::vector<TypesMgr::TypeId> param_types = Types.getFuncParamsTypes(Symbols.getGlobalFunctionType(ident));
+  std::vector<TypesMgr::TypeId> param_types = Types.getFuncParamsTypes(funcType);
   for(auto & expr : ctx->function_call()->expr()) {
     CodeAttribs && codAt = visit(expr);
     std::string addr = codAt.addr;
