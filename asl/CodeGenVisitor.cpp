@@ -335,14 +335,21 @@ antlrcpp::Any CodeGenVisitor::visitFuncCallExpr(AslParser::FuncCallExprContext *
     auto expr = ctx->function_call()->expr(i);
     CodeAttribs && codAt = visit(expr);
     std::string addr = codAt.addr;
-    std::string offs = codAt.offs; // TODO
+    std::string offs = codAt.offs;
     TypesMgr::TypeId exprType = getTypeDecor(expr);
+    //Type coercion
     if (Types.isIntegerTy(exprType) and Types.isFloatTy(param_types[i])) {
       std::string temp = "%"+codeCounters.newTEMP();
       code = code || codAt.code || instruction::FLOAT(temp, addr);
       addr = temp;
     } else {
       code = code || codAt.code;
+    }
+    // Passing by reference
+    if (Types.isArrayTy(exprType)) {
+      std::string temp = "%"+codeCounters.newTEMP();
+      code = code || instruction::ALOAD(temp, addr);
+      addr = temp;
     }
     code = code || instruction::PUSH(addr);
   }
@@ -397,13 +404,20 @@ antlrcpp::Any CodeGenVisitor::visitWriteExpr(AslParser::WriteExprContext *ctx) {
   TypesMgr::TypeId tid = getTypeDecor(ctx->expr());
 
   if (offs1 != "") {
-    std::string temp = "%"+codeCounters.newTEMP();
-    if (Types.isFloatTy(tid) or Types.isIntegerTy(tid) or Types.isBooleanTy(tid)) {
-      code = code || instruction::LOADX(temp, addr1, offs1);
-    } else if (Types.isCharacterTy(tid)) {
-      code = code || instruction::CLOAD(temp, addr1+"["+offs1+"]");
+    if (Symbols.isParameterClass(addr1)) {
+      std::string temp = "%"+codeCounters.newTEMP();
+      code = code || instruction::ILOAD(temp, addr1);
+      code = code || instruction::LOADX(temp, temp, offs1);
+      addr1 = temp;
+    } else {
+      std::string temp = "%"+codeCounters.newTEMP();
+      if (Types.isFloatTy(tid) or Types.isIntegerTy(tid) or Types.isBooleanTy(tid)) {
+        code = code || instruction::LOADX(temp, addr1, offs1);
+      } else if (Types.isCharacterTy(tid)) {
+        code = code || instruction::CLOAD(temp, addr1+"["+offs1+"]");
+      }
+      addr1 = temp;
     }
-    addr1 = temp;
   }
   if(Types.isFloatTy(tid)) {
     code = code || instruction::WRITEF(addr1); 
@@ -621,14 +635,28 @@ antlrcpp::Any CodeGenVisitor::visitRelational(AslParser::RelationalContext *ctx)
 
   // Offset handling
   if (offs1 != "") {
-    std::string temp = "%"+codeCounters.newTEMP();
-    code = code || instruction::LOADX(temp, addr1, offs1);
-    addr1 = temp;
+    if (Symbols.isParameterClass(addr1)) {
+      std::string temp = "%"+codeCounters.newTEMP();
+      code = code || instruction::ILOAD(temp, addr1);
+      code = code || instruction::LOADX(temp, temp, offs1);
+      addr1 = temp;
+    } else {
+      std::string temp = "%"+codeCounters.newTEMP();
+      code = code || instruction::LOADX(temp, addr1, offs1);
+      addr1 = temp;
+    }
   }
   if (offs2 != "") {
-    std::string temp = "%"+codeCounters.newTEMP();
-    code = code || instruction::LOADX(temp, addr2, offs2);
-    addr2 = temp;
+    if (Symbols.isParameterClass(addr2)) {
+      std::string temp = "%"+codeCounters.newTEMP();
+      code = code || instruction::ILOAD(temp, addr2);
+      code = code || instruction::LOADX(temp, temp, offs2);
+      addr2 = temp;
+    } else {
+      std::string temp = "%"+codeCounters.newTEMP();
+      code = code || instruction::LOADX(temp, addr2, offs2);
+      addr2 = temp;
+    }
   }
 
   // Type coercion
