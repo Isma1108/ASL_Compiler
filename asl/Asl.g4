@@ -169,7 +169,7 @@ WRITE     : 'write';
 BOOLVAL   : 'true' | 'false';
 INTVAL    : DIGIT+ ;
 FLOATVAL  : DIGIT+ '.' DIGIT+;
-CHARVAL   : SINGLE_QUOTA (DIGIT | LETTER | '\\n' | '\\t' | '.') SINGLE_QUOTA;
+CHARVAL   : SINGLE_QUOTA (DIGIT | LETTER | '\\n' | '\\t' | '.' | ' ') SINGLE_QUOTA;
 ID        : LETTER (LETTER | '_' | DIGIT)* ;
 
 
