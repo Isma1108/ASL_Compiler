@@ -330,7 +330,12 @@ antlrcpp::Any CodeGenVisitor::visitProcCall(AslParser::ProcCallContext *ctx) {
     auto expr = ctx->function_call()->expr(i);
     CodeAttribs && codAt = visit(expr);
     std::string addr = codAt.addr;
-    std::string offs = codAt.offs; // TODO
+    std::string offs = codAt.offs;
+    if (offs != "") {
+      std::string temp = "%"+codeCounters.newTEMP();
+      code = code || instruction::LOADX(temp, addr, offs);
+      addr = temp;
+    }
     TypesMgr::TypeId exprType = getTypeDecor(expr);
     //Type coercion
     if (Types.isIntegerTy(exprType) and Types.isFloatTy(param_types[i])) {
@@ -370,7 +375,12 @@ antlrcpp::Any CodeGenVisitor::visitFuncCallExpr(AslParser::FuncCallExprContext *
     auto expr = ctx->function_call()->expr(i);
     CodeAttribs && codAt = visit(expr);
     std::string addr = codAt.addr;
-    std::string offs = codAt.offs; // TODO
+    std::string offs = codAt.offs;
+    if (offs != "") {
+      std::string temp = "%"+codeCounters.newTEMP();
+      code = code || instruction::LOADX(temp, addr, offs);
+      addr = temp;
+    }
     TypesMgr::TypeId exprType = getTypeDecor(expr);
     //Type coercion
     if (Types.isIntegerTy(exprType) and Types.isFloatTy(param_types[i])) {
