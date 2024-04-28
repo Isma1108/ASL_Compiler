@@ -102,7 +102,7 @@ antlrcpp::Any CodeGenVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   codeCounters.reset();
 
   const std::string& funcName = ctx->ID()->getText();
-  TypesMgr::TypeId funcType = Symbols.getType(funcName);
+  TypesMgr::TypeId funcType = getTypeDecor(ctx);
   TypesMgr::TypeId returnType = Types.getFuncReturnType(funcType);
 
   std::vector<var> && params = visit(ctx->parameters());
@@ -184,17 +184,19 @@ antlrcpp::Any CodeGenVisitor::visitAssignStmt(AslParser::AssignStmtContext *ctx)
   std::string           addr1 = codAtsE1.addr;
   std::string           offs1 = codAtsE1.offs;
   instructionList &     code1 = codAtsE1.code;
-  //TypesMgr::TypeId tid1 = getTypeDecor(ctx->left_expr());
   
   CodeAttribs     && codAtsE2 = visit(ctx->expr());
   std::string           addr2 = codAtsE2.addr;
   std::string           offs2 = codAtsE2.offs;
   instructionList &     code2 = codAtsE2.code;
   
-  //TypesMgr::TypeId tid2 = getTypeDecor(ctx->expr());
+  TypesMgr::TypeId tid1 = getTypeDecor(ctx->left_expr());
+  TypesMgr::TypeId tid2 = getTypeDecor(ctx->expr());
 
   code = code1 || code2;
   
+  addr2 = doCoercionIntFloat(code, tid2, tid1, addr2);
+
   if (offs1 != "") code = code || instruction::XLOAD(addr1, offs1, addr2);
   else code = code || instruction::LOAD(addr1, addr2);
   DEBUG_EXIT();
@@ -264,11 +266,20 @@ antlrcpp::Any CodeGenVisitor::visitReadStmt(AslParser::ReadStmtContext *ctx) {
   DEBUG_ENTER();
   CodeAttribs     && codAtsE = visit(ctx->left_expr());
   std::string          addr1 = codAtsE.addr;
-  // std::string          offs1 = codAtsE.offs;
+  std::string          offs1 = codAtsE.offs;
   instructionList &    code1 = codAtsE.code;
   instructionList &     code = code1;
-  // TypesMgr::TypeId tid1 = getTypeDecor(ctx->left_expr());
-  code = code1 || instruction::READI(addr1);
+  
+  TypesMgr::TypeId tid1 = getTypeDecor(ctx->left_expr());
+  std::string address = "%" + codeCounters.newTEMP();
+
+  if (Types.isFloatTy(tid1)) code = code || instruction::READF(address); 
+  else if (Types.isCharacterTy(tid1)) code = code || instruction::READC(address);
+  else code = code1 || instruction::READI(address);
+
+  if (offs1 != "") code = code || instruction::XLOAD(addr1, offs1, address);
+  else code = code || instruction::LOAD(addr1, address);
+  
   DEBUG_EXIT();
   return code;
 }
@@ -362,10 +373,15 @@ antlrcpp::Any CodeGenVisitor::visitArithmeticUnary(AslParser::ArithmeticUnaryCon
   std::string addr1 = codAt1.addr;
   instructionList& code = codAt1.code;
   
-  std::string temp = "%"+codeCounters.newTEMP();
-  if (ctx->MINUS()) code = code || instruction::NEG(temp, addr1);
+  std::string result_addr = "%"+codeCounters.newTEMP();
+  TypesMgr::TypeId tid = getTypeDecor(ctx->expr());
+
+  if (ctx->MINUS()) {
+    if (Types.isFloatTy(tid)) code = code || instruction::FNEG(result_addr, addr1);
+    else code = code || instruction::NEG(result_addr, addr1);
+  }
   
-  CodeAttribs codAts(temp, "", code);
+  CodeAttribs codAts(result_addr, "", code);
 
   DEBUG_EXIT();
   return codAts;
