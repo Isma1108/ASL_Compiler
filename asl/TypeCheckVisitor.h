@@ -86,10 +86,11 @@ public:
   antlrcpp::Any visitArithmeticUnary(AslParser::ArithmeticUnaryContext *ctx);
   antlrcpp::Any visitRelational(AslParser::RelationalContext *ctx);
   antlrcpp::Any visitValue(AslParser::ValueContext *ctx);
-  antlrcpp::Any visitLeftExprValue(AslParser::LeftExprValueContext *ctx);
   antlrcpp::Any visitFunction_call(AslParser::Function_callContext *ctx);
   antlrcpp::Any visitFunctionValue(AslParser::FunctionValueContext *ctx);
   antlrcpp::Any visitIdent(AslParser::IdentContext *ctx);
+
+  antlrcpp::Any visitArrayValue(AslParser::ArrayValueContext *ctx);
 
 private:
 

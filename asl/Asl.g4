@@ -118,8 +118,8 @@ expr    : '(' expr ')'                                      # parenthesis
         | expr op=AND expr                                  # binaryOperation
         | expr op=OR expr                                   # binaryOperation
         | (INTVAL|FLOATVAL|CHARVAL|BOOLVAL)                 # value
-        | left_expr                                         # leftExprValue
         | function_call                                     # functionValue
+        | ident LBRACK expr RBRACK                          # arrayValue
         | ident                                             # exprIdent
         ;
 

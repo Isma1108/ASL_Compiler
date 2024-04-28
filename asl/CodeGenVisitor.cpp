@@ -39,7 +39,7 @@
 #include <cstddef>    // std::size_t
 
 // uncomment the following line to enable debugging messages with DEBUG*
-//  #define DEBUG_BUILD
+// #define DEBUG_BUILD
 #include "../common/debug.h"
 
 // using namespace std;
@@ -139,6 +139,7 @@ antlrcpp::Any CodeGenVisitor::visitVariable_decl(AslParser::Variable_declContext
   DEBUG_ENTER();
   TypesMgr::TypeId   t1 = getTypeDecor(ctx->type());
   std::size_t      size = Types.getSizeOfType(t1);
+  if (Types.isArrayTy(t1)) t1 = Types.getArrayElemType(t1);
 
   std::vector<var> onelineVars;
   for (const auto& id : ctx->ID()) {
@@ -363,6 +364,7 @@ antlrcpp::Any CodeGenVisitor::visitArithmeticUnary(AslParser::ArithmeticUnaryCon
   
   std::string temp = "%"+codeCounters.newTEMP();
   if (ctx->MINUS()) code = code || instruction::NEG(temp, addr1);
+  
   CodeAttribs codAts(temp, "", code);
 
   DEBUG_EXIT();
@@ -470,9 +472,18 @@ antlrcpp::Any CodeGenVisitor::visitRelational(AslParser::RelationalContext *ctx)
   return codAts;
 }
 
-antlrcpp::Any CodeGenVisitor::visitLeftExprValue(AslParser::LeftExprValueContext *ctx) {
+antlrcpp::Any CodeGenVisitor::visitArrayValue(AslParser::ArrayValueContext *ctx) {
   DEBUG_ENTER();
-  CodeAttribs && codAts = visit(ctx->left_expr());
+  CodeAttribs && codIdent = visit(ctx->ident());
+  CodeAttribs && codExp = visit(ctx->expr());
+
+  instructionList code = codExp.code;
+  std::string temp = "%" + codeCounters.newTEMP();  
+
+  code = code || instruction::LOADX(temp, codIdent.addr, codExp.addr);
+
+  CodeAttribs codAts(temp, codExp.addr, code);
+
   DEBUG_EXIT();
   return codAts;
 }
@@ -503,20 +514,15 @@ antlrcpp::Any CodeGenVisitor::visitFunctionValue(AslParser::FunctionValueContext
 antlrcpp::Any CodeGenVisitor::visitFunction_call(AslParser::Function_callContext *ctx) {
   DEBUG_ENTER();
 
-  const std::string & functionName = ctx->ident()->ID()->getText();
 	std::vector <TypesMgr::TypeId> argumentTypes;
 	std::vector <std::string> argumentAddresses;
 	instructionList code;
 
-  std::string address_return;
   const std::string& funcName = ctx->ident()->ID()->getText();
   TypesMgr::TypeId funcType = Symbols.getType(funcName);
 
   //If is a non void function we push an empty parameter for the result
-  if (Types.isPrimitiveNonVoidTy(Types.getFuncReturnType(funcType))) {
-    address_return = "%" + codeCounters.newTEMP();
-		code = code || instruction::PUSH();
-  }
+  if (Types.isPrimitiveNonVoidTy(Types.getFuncReturnType(funcType))) code = code || instruction::PUSH();
 
   //We push the parameters with possible int - float coercion
   uint32_t i = 0;
@@ -527,8 +533,9 @@ antlrcpp::Any CodeGenVisitor::visitFunction_call(AslParser::Function_callContext
       TypesMgr::TypeId argType = getTypeDecor(ex);
       TypesMgr::TypeId paramType = Types.getParameterType(Symbols.getType(funcName), i++);
       std::string address = codE.addr;
+      code = code || codE.code;
       address = doCoercionIntFloat(code, argType, paramType, address);
-      code = code || codE.code || instruction::PUSH(address);
+      code = code || instruction::PUSH(address);
     }
   }
 
@@ -537,6 +544,7 @@ antlrcpp::Any CodeGenVisitor::visitFunction_call(AslParser::Function_callContext
   const std::size_t numParams = Types.getNumOfParameters(funcType);
   for (uint32_t i = 0; i < numParams; ++i) code = code || instruction::POP();
 
+  std::string address_return = "%" + codeCounters.newTEMP();
   if (Types.isPrimitiveNonVoidTy(Types.getFuncReturnType(funcType))) code = code || instruction::POP(address_return);
   CodeAttribs codAt(address_return, "", code);
 

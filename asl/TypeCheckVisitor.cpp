@@ -272,6 +272,39 @@ antlrcpp::Any TypeCheckVisitor::visitLeftExprArray(AslParser::LeftExprArrayConte
   return 0;
 }
 
+antlrcpp::Any TypeCheckVisitor::visitArrayValue(AslParser::ArrayValueContext *ctx) {
+  DEBUG_ENTER();
+
+  //First we see the array to detect
+  //if we are doing array acces to a array operand
+  visit(ctx->ident());
+  TypesMgr::TypeId t = getTypeDecor(ctx->ident());
+  bool b = getIsLValueDecor(ctx->ident());
+
+  if (not Types.isErrorTy(t) and not Types.isArrayTy(t)) {
+    //We are array accessing but we have no array
+    Errors.nonArrayInArrayAccess(ctx->ident());
+    putTypeDecor(ctx, Types.createErrorTy());
+  }
+  else {
+    if (Types.isArrayTy(t)) putTypeDecor(ctx, Types.getArrayElemType(t));
+    else putTypeDecor(ctx, Types.createErrorTy());
+  }
+  
+  putIsLValueDecor(ctx, b);
+
+  //Now we see the index
+  visit(ctx->expr());
+  t = getTypeDecor(ctx->expr());
+  if (not Types.isErrorTy(t) and not Types.isIntegerTy(t)) {
+    //The index is not an Integer value
+    Errors.nonIntegerIndexInArrayAccess(ctx->expr());
+  }
+
+  DEBUG_EXIT();
+  return 0;
+}
+
 
 antlrcpp::Any TypeCheckVisitor::visitParenthesis(AslParser::ParenthesisContext *ctx) {
   DEBUG_ENTER();
@@ -396,6 +429,7 @@ antlrcpp::Any TypeCheckVisitor::visitValue(AslParser::ValueContext *ctx) {
   return 0;
 }
 
+/*
 antlrcpp::Any TypeCheckVisitor::visitLeftExprValue(AslParser::LeftExprValueContext *ctx) {
   DEBUG_ENTER();
   visit(ctx->left_expr());
@@ -408,6 +442,7 @@ antlrcpp::Any TypeCheckVisitor::visitLeftExprValue(AslParser::LeftExprValueConte
   DEBUG_EXIT();
   return 0;
 }
+*/
 
 antlrcpp::Any TypeCheckVisitor::visitFunctionValue(AslParser::FunctionValueContext *ctx) {
   DEBUG_ENTER();
