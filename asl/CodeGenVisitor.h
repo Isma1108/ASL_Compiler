@@ -93,6 +93,7 @@ public:
   antlrcpp::Any visitBinaryOperationUnary(AslParser::BinaryOperationUnaryContext *ctx);
   antlrcpp::Any visitBinaryOperation(AslParser::BinaryOperationContext *ctx);
   antlrcpp::Any visitFuncCallExpr(AslParser::FuncCallExprContext *ctx);
+  void processFuncParams(AslParser::Function_callContext *ctx, instructionList& code, TypesMgr::TypeId& funcType, std::string& name);
 
 private:
 
