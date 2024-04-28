@@ -242,12 +242,19 @@ antlrcpp::Any CodeGenVisitor::visitIfStmt(AslParser::IfStmtContext *ctx) {
   CodeAttribs     && codAtsE = visit(ctx->expr());
   std::string          addr1 = codAtsE.addr;
   instructionList &    code1 = codAtsE.code;
-  // For now we only visit the first block of code of an if then else statement
   instructionList &&   code2 = visit(ctx->statements(0));
-  std::string label = codeCounters.newLabelIF();
-  std::string labelEndIf = "endif"+label;
-  code = code1 || instruction::FJUMP(addr1, labelEndIf) ||
-         code2 || instruction::LABEL(labelEndIf);
+  if (ctx->statements().size() == 1) {
+    std::string labelEndIf = "endif"+codeCounters.newLabelIF();
+    code = code1 || instruction::FJUMP(addr1, labelEndIf) || code2 || instruction::LABEL(labelEndIf);
+  } else {
+    instructionList &&  code3 = visit(ctx->statements(1));
+    std::string labelElse = "else"+codeCounters.newLabelIF();
+    std::string labelEndIf = "endif"+codeCounters.newLabelIF();
+    code =  code1 || instruction::FJUMP(addr1, labelElse) ||
+            code2 || instruction::FJUMP(addr1, labelEndIf) ||
+            instruction::LABEL(labelElse) ||
+            code3 || instruction::LABEL(labelEndIf);
+  }
   DEBUG_EXIT();
   return code;
 }
