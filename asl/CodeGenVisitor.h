@@ -79,6 +79,7 @@ public:
   antlrcpp::Any visitReadStmt(AslParser::ReadStmtContext *ctx);
   antlrcpp::Any visitWriteExpr(AslParser::WriteExprContext *ctx);
   antlrcpp::Any visitWriteString(AslParser::WriteStringContext *ctx);
+  antlrcpp::Any visitWriteChar(AslParser::WriteCharContext *ctx);
   //antlrcpp::Any visitLeft_expr(AslParser::Left_exprContext *ctx);
   antlrcpp::Any visitLeftExprIdent(AslParser::LeftExprIdentContext *ctx);
   antlrcpp::Any visitLeftExprArray(AslParser::LeftExprArrayContext *ctx);

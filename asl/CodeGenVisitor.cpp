@@ -433,6 +433,16 @@ antlrcpp::Any CodeGenVisitor::visitWriteString(AslParser::WriteStringContext *ct
   return code;
 }
 
+antlrcpp::Any CodeGenVisitor::visitWriteChar(AslParser::WriteCharContext *ctx) {
+  DEBUG_ENTER();
+  instructionList code;
+  std::string c = ctx->CHARVAL()->getText();
+  std::string parsed = c.substr(1, c.size()-2);
+  code = code || instruction::WRITES("\"" + parsed + "\"");
+  DEBUG_EXIT();
+  return code;
+}
+
 antlrcpp::Any CodeGenVisitor::visitLeftExprIdent(AslParser::LeftExprIdentContext *ctx) {
   DEBUG_ENTER();
   CodeAttribs && codAts = visit(ctx->ident());
@@ -561,7 +571,11 @@ antlrcpp::Any CodeGenVisitor::visitArithmetic(AslParser::ArithmeticContext *ctx)
     } else {
       code = code || instruction::DIV(res_temp, addr1, addr2);
     }
-  //} else if (ctx->MOD()) (todo) {
+  } else if (ctx->MOD()) {
+    std::string temp = "%"+codeCounters.newTEMP();
+    code = code || instruction::DIV(temp, addr1, addr2);
+    code = code || instruction::MUL(temp, temp, addr2);
+    code = code || instruction::SUB(res_temp, addr1, temp);
   } else if (ctx->PLUS()) {
     if (Types.isFloatTy(t)) {
       code = code || instruction::FADD(res_temp, addr1, addr2);

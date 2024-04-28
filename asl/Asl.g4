@@ -84,10 +84,12 @@ statement
         | function_call ';'                                     # procCall
           // Read a variable
         | READ left_expr ';'                                    # readStmt
-          // Write an expression
-        | WRITE expr ';'                                        # writeExpr
+          // Write a char
+        | WRITE CHARVAL ';'                                     # writeChar
           // Write a string
         | WRITE STRING ';'                                      # writeString
+          // Write an expression
+        | WRITE expr ';'                                        # writeExpr
           // Return an expression
         | RETURN (expr)? ';'                                    # returnStmt
         ;
@@ -167,7 +169,7 @@ WRITE     : 'write';
 BOOLVAL   : 'true' | 'false';
 INTVAL    : DIGIT+ ;
 FLOATVAL  : DIGIT+ '.' DIGIT+;
-CHARVAL   : SINGLE_QUOTA (DIGIT | LETTER | '\\n' | '\\t') SINGLE_QUOTA;
+CHARVAL   : SINGLE_QUOTA (DIGIT | LETTER | '\\n' | '\\t' | '.') SINGLE_QUOTA;
 ID        : LETTER (LETTER | '_' | DIGIT)* ;
 
 
