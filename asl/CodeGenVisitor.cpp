@@ -161,9 +161,10 @@ antlrcpp::Any CodeGenVisitor::visitParameter_decl(AslParser::Parameter_declConte
   DEBUG_ENTER();
   TypesMgr::TypeId t = getTypeDecor(ctx->type());
   std::size_t size = Types.getSizeOfType(t);
-  if (Types.isArrayTy(t)) t = Types.getArrayElemType(t);
+  //if (Types.isArrayTy(t)) t = Types.getArrayElemType(t);
+  
   DEBUG_EXIT();
-  return var{ctx->ID()->getText(), Types.to_string(t), size};
+  return var{ctx->ID()->getText(), Types.to_string_basic(t), size};
 }
 
 antlrcpp::Any CodeGenVisitor::visitStatements(AslParser::StatementsContext *ctx) {
@@ -200,6 +201,40 @@ antlrcpp::Any CodeGenVisitor::visitAssignStmt(AslParser::AssignStmtContext *ctx)
   addr2 = doCoercionIntFloat(code, tid2, tid1, addr2);
 
   if (offs1 != "") code = code || instruction::XLOAD(addr1, offs1, addr2);
+  else if (Types.isArrayTy(tid1) && Types.isArrayTy(tid2)) {
+    //aqui tenemos asignacion de un vector entero a otro vector, ej: v = d
+    //necesitamos recorrer todos los elementos e ir assignando
+
+    std::string rightArray = "%" + codeCounters.newTEMP();
+    code = code || instruction::LOAD(rightArray, addr2);
+
+    std::string idx = "%" + codeCounters.newTEMP();
+    code = code || instruction::ILOAD(idx, "0");
+
+    std::string array_size = "%" + codeCounters.newTEMP();
+    code = code || instruction::ILOAD(array_size, std::to_string(Types.getArraySize(tid2)));
+
+    std::string one = "%" + codeCounters.newTEMP();
+    code = code || instruction::ILOAD(one, "1");
+
+    std::string label = codeCounters.newLabelWHILE();
+    std::string labelWhile = "while" + label;
+    std::string labelEndWhile = "endwhile" + label;
+
+    std::string condition = "%" + codeCounters.newTEMP();
+
+    std::string temp = "%" + codeCounters.newTEMP();
+
+    instructionList codeExpr = instruction::LT(condition, idx, array_size); 
+    instructionList codeAssign = instruction::LOADX(temp, addr2, idx) ||
+                                 instruction::XLOAD(addr1, idx, temp);
+    
+    code = code || instruction::LABEL(labelWhile) || codeExpr ||
+           instruction::FJUMP(condition, labelEndWhile) ||
+           codeAssign || instruction::ADD(idx, idx, one) || 
+           instruction::UJUMP(labelWhile) ||
+           instruction::LABEL(labelEndWhile);
+  } 
   else code = code || instruction::LOAD(addr1, addr2);
   DEBUG_EXIT();
   return code;
@@ -335,13 +370,8 @@ antlrcpp::Any CodeGenVisitor::visitLeftExprArray(AslParser::LeftExprArrayContext
   CodeAttribs && codExp = visit(ctx->expr());
 
   std::string arrayAddress = codIdent.addr;
-  instructionList code = codExp.code;
+  instructionList code = codExp.code || codIdent.code;
 
-  if (Symbols.isParameterClass(codIdent.addr)) {
-    std::string temp = "%" + codeCounters.newTEMP();
-    code = code || instruction::LOAD(temp, arrayAddress);
-    arrayAddress = temp;
-  }
 
   CodeAttribs codAts(arrayAddress, codExp.addr, code);
 
@@ -511,23 +541,11 @@ antlrcpp::Any CodeGenVisitor::visitArrayValue(AslParser::ArrayValueContext *ctx)
 
   instructionList code = codExp.code;
 
-  
-  if (Symbols.isParameterClass(codIdent.addr)) {
-    std::string temp = "%" + codeCounters.newTEMP();  
     std::string arrayValue = "%" + codeCounters.newTEMP();
-    code = code || instruction::LOAD(temp, codIdent.addr);;
-    code = code || instruction::LOADX(arrayValue, temp, codExp.addr);
+    code = code || codIdent.code || instruction::LOADX(arrayValue, codIdent.addr, codExp.addr);
     CodeAttribs codAts(arrayValue, codExp.addr, code);
     DEBUG_EXIT();
     return codAts;
-  }
-  else {
-    std::string arrayValue = "%" + codeCounters.newTEMP();
-    code = code || instruction::LOADX(arrayValue, codIdent.addr, codExp.addr);
-    CodeAttribs codAts(arrayValue, codExp.addr, code);
-    DEBUG_EXIT();
-    return codAts;
-  }
 }
 
 antlrcpp::Any CodeGenVisitor::visitValue(AslParser::ValueContext *ctx) {
@@ -613,7 +631,16 @@ antlrcpp::Any CodeGenVisitor::visitExprIdent(AslParser::ExprIdentContext *ctx) {
 
 antlrcpp::Any CodeGenVisitor::visitIdent(AslParser::IdentContext *ctx) {
   DEBUG_ENTER();
-  CodeAttribs codAts(ctx->ID()->getText(), "", instructionList());
+  std::string id = ctx->ID()->getText();
+
+  instructionList code = instructionList();
+
+  if (Symbols.isParameterClass(id) && Types.isArrayTy(Symbols.getType(id))) {
+    std::string temp = "%" + codeCounters.newTEMP();
+    code = code || instruction::LOAD(temp, id);
+    id = temp;
+  }
+  CodeAttribs codAts(id, "", code);
   DEBUG_EXIT();
   return codAts;
 }

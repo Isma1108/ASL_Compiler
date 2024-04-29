@@ -225,7 +225,7 @@ fragment
 DIGIT     : '0'..'9';
 
 fragment
-SYMBOL    : '.'|;
+SYMBOL    : '.'|' ';
 
 fragment
 SINGLE_QUOTA : '\'';
