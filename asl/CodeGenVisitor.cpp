@@ -428,7 +428,12 @@ antlrcpp::Any CodeGenVisitor::visitArithmetic(AslParser::ArithmeticContext *ctx)
   //TypesMgr::TypeId  t = getTypeDecor(ctx);
   
   std::string temp = "%"+codeCounters.newTEMP();
-  if (Types.isFloatTy(t1) or Types.isFloatTy(t2)) {
+  if (ctx->MOD()) {
+    code = code || instruction::DIV(temp, addr1, addr2);
+    code = code || instruction::MUL(temp, temp, addr2);
+    code = code || instruction::SUB(temp, addr1, temp);
+  }
+  else if (Types.isFloatTy(t1) or Types.isFloatTy(t2)) {
     //Type coercion
     addr1 = doCoercionIntFloat(code, t1, t2, addr1);
     addr2 = doCoercionIntFloat(code, t2, t1, addr2);
@@ -533,7 +538,12 @@ antlrcpp::Any CodeGenVisitor::visitValue(AslParser::ValueContext *ctx) {
 
   if (Types.isIntegerTy(t)) code = instruction::ILOAD(temp, ctx->getText());
   else if (Types.isFloatTy(t)) code = instruction::FLOAD(temp, ctx->getText());
-  else if (Types.isCharacterTy(t)) code = instruction::CLOAD(temp, ctx->getText());
+  else if (Types.isCharacterTy(t)) {
+    std::string ch = ctx->getText();
+    ch.erase(0,1);
+    ch.erase(ch.size()-1);
+    code = instruction::CHLOAD(temp, ch);
+  }
   else code = instruction::ILOAD(temp, ctx->getText() == "true" ? "1" : "0"); // boolean value
 
   CodeAttribs codAts(temp, "", code);

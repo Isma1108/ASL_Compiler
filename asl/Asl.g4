@@ -201,7 +201,7 @@ WRITE     : 'write';
 BOOLVAL   : 'true' | 'false'; //It musk go before ID token to be recognized
 INTVAL    : DIGIT+ ;
 FLOATVAL  : DIGIT+ '.' DIGIT+;
-CHARVAL   : SINGLE_QUOTA (DIGIT | LETTER | '\\n' | '\\t') SINGLE_QUOTA;
+CHARVAL   : SINGLE_QUOTA (DIGIT | LETTER | SYMBOL | '\\n' | '\\t') SINGLE_QUOTA;
 
 //Identifier (minimum priority)
 ID        : LETTER (LETTER | '_' | DIGIT)* ;
@@ -223,6 +223,9 @@ LETTER    : 'a'..'z'|'A'..'Z';
 
 fragment
 DIGIT     : '0'..'9';
+
+fragment
+SYMBOL    : '.'|;
 
 fragment
 SINGLE_QUOTA : '\'';
