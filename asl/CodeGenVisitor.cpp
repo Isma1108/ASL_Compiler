@@ -108,7 +108,7 @@ antlrcpp::Any CodeGenVisitor::visitFunction(AslParser::FunctionContext *ctx) {
   std::vector<var> && params = visit(ctx->parameters());
   if (Types.isPrimitiveNonVoidTy(returnType)) subr.add_param("_result", Types.to_string(returnType));
   for (const auto & p : params) {
-    subr.add_param(p.name, p.type); //isArray=false by default, we don't have arrays in parameters
+    subr.add_param(p.name, p.type, p.nelem > 1);
   }
 
   std::vector<var> && lvars = visit(ctx->declarations());
@@ -160,8 +160,10 @@ antlrcpp::Any CodeGenVisitor::visitParameters(AslParser::ParametersContext *ctx)
 antlrcpp::Any CodeGenVisitor::visitParameter_decl(AslParser::Parameter_declContext *ctx) {
   DEBUG_ENTER();
   TypesMgr::TypeId t = getTypeDecor(ctx->type());
+  std::size_t size = Types.getSizeOfType(t);
+  if (Types.isArrayTy(t)) t = Types.getArrayElemType(t);
   DEBUG_EXIT();
-  return var{ctx->ID()->getText(), Types.to_string(t)}; //by default size = 1
+  return var{ctx->ID()->getText(), Types.to_string(t), size};
 }
 
 antlrcpp::Any CodeGenVisitor::visitStatements(AslParser::StatementsContext *ctx) {
@@ -332,7 +334,16 @@ antlrcpp::Any CodeGenVisitor::visitLeftExprArray(AslParser::LeftExprArrayContext
   CodeAttribs && codIdent = visit(ctx->ident());
   CodeAttribs && codExp = visit(ctx->expr());
 
-  CodeAttribs codAts(codIdent.addr, codExp.addr, codExp.code);
+  std::string arrayAddress = codIdent.addr;
+  instructionList code = codExp.code;
+
+  if (Symbols.isParameterClass(codIdent.addr)) {
+    std::string temp = "%" + codeCounters.newTEMP();
+    code = code || instruction::LOAD(temp, arrayAddress);
+    arrayAddress = temp;
+  }
+
+  CodeAttribs codAts(arrayAddress, codExp.addr, code);
 
   DEBUG_EXIT();
   return codAts;
@@ -494,14 +505,24 @@ antlrcpp::Any CodeGenVisitor::visitArrayValue(AslParser::ArrayValueContext *ctx)
   CodeAttribs && codExp = visit(ctx->expr());
 
   instructionList code = codExp.code;
-  std::string temp = "%" + codeCounters.newTEMP();  
 
-  code = code || instruction::LOADX(temp, codIdent.addr, codExp.addr);
-
-  CodeAttribs codAts(temp, codExp.addr, code);
-
-  DEBUG_EXIT();
-  return codAts;
+  
+  if (Symbols.isParameterClass(codIdent.addr)) {
+    std::string temp = "%" + codeCounters.newTEMP();  
+    std::string arrayValue = "%" + codeCounters.newTEMP();
+    code = code || instruction::LOAD(temp, codIdent.addr);;
+    code = code || instruction::LOADX(arrayValue, temp, codExp.addr);
+    CodeAttribs codAts(arrayValue, codExp.addr, code);
+    DEBUG_EXIT();
+    return codAts;
+  }
+  else {
+    std::string arrayValue = "%" + codeCounters.newTEMP();
+    code = code || instruction::LOADX(arrayValue, codIdent.addr, codExp.addr);
+    CodeAttribs codAts(arrayValue, codExp.addr, code);
+    DEBUG_EXIT();
+    return codAts;
+  }
 }
 
 antlrcpp::Any CodeGenVisitor::visitValue(AslParser::ValueContext *ctx) {
@@ -551,7 +572,11 @@ antlrcpp::Any CodeGenVisitor::visitFunction_call(AslParser::Function_callContext
       std::string address = codE.addr;
       code = code || codE.code;
       address = doCoercionIntFloat(code, argType, paramType, address);
-      code = code || instruction::PUSH(address);
+      if (Types.isArrayTy(paramType)) {
+        std::string address_array_pointer = "%" + codeCounters.newTEMP();
+        code = code || instruction::ALOAD(address_array_pointer, address) || instruction::PUSH(address_array_pointer);
+      }
+      else code = code || instruction::PUSH(address);
     }
   }
 
