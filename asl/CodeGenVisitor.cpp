@@ -600,11 +600,12 @@ antlrcpp::Any CodeGenVisitor::visitFunction_call(AslParser::Function_callContext
       std::string address = codE.addr;
       code = code || codE.code;
       address = doCoercionIntFloat(code, argType, paramType, address);
-      if (Types.isArrayTy(paramType)) {
+      if (Types.isArrayTy(paramType) && address[0] != '%') {
         std::string address_array_pointer = "%" + codeCounters.newTEMP();
-        code = code || instruction::ALOAD(address_array_pointer, address) || instruction::PUSH(address_array_pointer);
+        code = code || instruction::ALOAD(address_array_pointer, address);
+        address = address_array_pointer;
       }
-      else code = code || instruction::PUSH(address);
+      code = code || instruction::PUSH(address);
     }
   }
 
