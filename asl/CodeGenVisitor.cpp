@@ -39,7 +39,7 @@
 #include <cstddef>    // std::size_t
 
 // uncomment the following line to enable debugging messages with DEBUG*
-// #define DEBUG_BUILD
+//#define DEBUG_BUILD
 #include "../common/debug.h"
 
 // using namespace std;
@@ -414,15 +414,20 @@ antlrcpp::Any CodeGenVisitor::visitArithmeticUnary(AslParser::ArithmeticUnaryCon
   std::string addr1 = codAt1.addr;
   instructionList& code = codAt1.code;
   
-  std::string result_addr = "%"+codeCounters.newTEMP();
+  
   TypesMgr::TypeId tid = getTypeDecor(ctx->expr());
 
   if (ctx->MINUS()) {
+    std::string result_addr = "%"+codeCounters.newTEMP();
     if (Types.isFloatTy(tid)) code = code || instruction::FNEG(result_addr, addr1);
     else code = code || instruction::NEG(result_addr, addr1);
+    CodeAttribs codAts(result_addr, "", code);
+
+    DEBUG_EXIT();
+    return codAts;
   }
   
-  CodeAttribs codAts(result_addr, "", code);
+  CodeAttribs codAts(addr1, "", code);
 
   DEBUG_EXIT();
   return codAts;
