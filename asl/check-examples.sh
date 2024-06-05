@@ -69,7 +69,7 @@ for f in ../examples/jpbasic_genc_*.asl; do
     if (test $? != 0); then
        echo "Compilation errors"
     else
-       ../tvm/tvm tmp.t < "${f/asl/in}" >tmp.out
+       ../tvm/tvm-linux tmp.t < "${f/asl/in}" >tmp.out
        check_genc_example "${f/asl/out}" tmp.out
     fi
     rm -f tmp.t tmp.out tmp.diff
@@ -87,7 +87,7 @@ for f in ../examples/jp_genc_*.asl; do
     if (test $? != 0); then
        echo "Compilation errors"
     else
-       ../tvm/tvm tmp.t < "${f/asl/in}" >tmp.out
+       ../tvm/tvm-linux tmp.t < "${f/asl/in}" >tmp.out
        check_genc_example "${f/asl/out}" tmp.out
     fi
     rm -f tmp.t tmp.out tmp.diff

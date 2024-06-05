@@ -369,7 +369,7 @@ void CodeGenVisitor::processFuncParams(AslParser::Function_callContext *ctx, ins
       code = code || codAt.code;
     }
     // Passing by reference
-    if (Types.isArrayTy(exprType) and addr[0] != '%') {
+    if (Types.isArrayTy(exprType) and Symbols.isLocalVarClass(&addr[0])) {
       std::string temp = "%"+codeCounters.newTEMP();
       code = code || instruction::ALOAD(temp, addr);
       addr = temp;
